@@ -90,3 +90,83 @@ def require_min_role(min_role: MemberRole):
     threshold = _ROLE_RANK[min_role]
     allowed: Iterable[MemberRole] = [r for r, rank in _ROLE_RANK.items() if rank >= threshold]
     return require_workspace_role(*allowed)
+
+from app.models.notebook import Notebook
+
+def require_notebook_role(*allowed_roles: MemberRole):
+    """Dependency factory enforcing membership + role on notebook-scoped endpoints."""
+    allowed = set(allowed_roles)
+
+    async def checker(
+        notebook_id: uuid.UUID = Path(...),
+        user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
+    ) -> Notebook:
+        notebook = await db.get(Notebook, notebook_id)
+        if not notebook:
+            raise NotFoundError("Notebook not found")
+            
+        result = await db.execute(
+            select(WorkspaceMember).where(
+                WorkspaceMember.workspace_id == notebook.workspace_id,
+                WorkspaceMember.user_id == user.id,
+            )
+        )
+        membership = result.scalar_one_or_none()
+        if membership is None:
+            raise NotFoundError("Workspace not found")
+        if allowed and membership.role not in allowed:
+            raise PermissionDeniedError("Insufficient workspace role")
+        return notebook
+
+    return checker
+
+def require_min_notebook_role(min_role: MemberRole):
+    threshold = _ROLE_RANK[min_role]
+    allowed: Iterable[MemberRole] = [r for r, rank in _ROLE_RANK.items() if rank >= threshold]
+    return require_notebook_role(*allowed)
+
+
+from app.models.note import Note
+
+
+def require_note_role(*allowed_roles: MemberRole):
+    """Dependency factory enforcing membership + role on note-scoped endpoints.
+
+    Resolves note → notebook → workspace → member role. Returns 404 for
+    missing notes and non-members (don't leak existence); 403 for insufficient role.
+    """
+    allowed = set(allowed_roles)
+
+    async def checker(
+        note_id: uuid.UUID = Path(...),
+        user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
+    ) -> Note:
+        note = await db.get(Note, note_id)
+        if not note:
+            raise NotFoundError("Note not found")
+        notebook = await db.get(Notebook, note.notebook_id)
+        if not notebook:
+            raise NotFoundError("Note not found")
+
+        result = await db.execute(
+            select(WorkspaceMember).where(
+                WorkspaceMember.workspace_id == notebook.workspace_id,
+                WorkspaceMember.user_id == user.id,
+            )
+        )
+        membership = result.scalar_one_or_none()
+        if membership is None:
+            raise NotFoundError("Note not found")
+        if allowed and membership.role not in allowed:
+            raise PermissionDeniedError("Insufficient workspace role")
+        return note
+
+    return checker
+
+
+def require_min_note_role(min_role: MemberRole):
+    threshold = _ROLE_RANK[min_role]
+    allowed: Iterable[MemberRole] = [r for r, rank in _ROLE_RANK.items() if rank >= threshold]
+    return require_note_role(*allowed)
