@@ -1,0 +1,1 @@
+# Workspace sharing / invitation service

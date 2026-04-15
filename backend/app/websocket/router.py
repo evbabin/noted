@@ -1,0 +1,1 @@
+# WebSocket endpoint + room management

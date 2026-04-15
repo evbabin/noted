@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Node
+node_modules/
+.pnpm-store/
+
+# Environment
+.env
+.env.local
+.env.production
+.env.*.local
+.env.example
+
+# IDE / AI Agent
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+claude.md 
+agents.md
+implementation_plan.md
+
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build output
+frontend/dist/
+*.log
+
+# Test / Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.pytest_cache/
+test-results/
+playwright-report/
+
+# Docker
+docker-compose.override.yml
+
+# Misc
+*.bak
+*.tmp
