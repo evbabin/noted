@@ -63,6 +63,9 @@ async def db_session() -> AsyncIterator[AsyncSession]:
     engine = create_async_engine(TEST_DATABASE_URL)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        from sqlalchemy import text
+        await conn.execute(text("ALTER TABLE notes ADD COLUMN IF NOT EXISTS search_vector tsvector GENERATED ALWAYS AS (setweight(to_tsvector('english', coalesce(title, '')), 'A') || setweight(to_tsvector('english', coalesce(content_text, '')), 'B')) STORED;"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS idx_notes_search ON notes USING GIN(search_vector);"))
     session_factory = async_sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False
     )

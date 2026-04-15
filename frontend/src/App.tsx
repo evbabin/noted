@@ -6,6 +6,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Dashboard } from './pages/Dashboard';
 import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
+import { NotePage } from './pages/Note';
 import { NotFound } from './pages/NotFound';
 import { QuizPage } from './pages/QuizPage';
 import { QuizReviewPage } from './pages/QuizReviewPage';
@@ -34,6 +35,7 @@ export function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/workspaces/:workspaceId" element={<Workspace />} />
+            <Route path="/workspaces/:workspaceId/notes/:noteId" element={<NotePage />} />
             <Route path="/notes/:noteId/quizzes" element={<QuizPage />} />
             <Route path="/quizzes/:quizId" element={<QuizReviewPage />} />
           </Route>
