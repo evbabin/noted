@@ -10,6 +10,16 @@ from app.models.note_version import NoteVersion
 from app.schemas.note import NoteCreate, NoteUpdate
 
 
+def _snapshot(note: Note, edited_by: uuid.UUID) -> NoteVersion:
+    return NoteVersion(
+        note_id=note.id,
+        version_number=note.version,
+        content=note.content,
+        content_text=note.content_text,
+        edited_by=edited_by,
+    )
+
+
 def extract_plain_text(content: Any) -> str | None:
     """Walk a TipTap/ProseMirror JSON doc and concatenate text nodes."""
     if not content:
@@ -33,14 +43,37 @@ def extract_plain_text(content: Any) -> str | None:
     return text or None
 
 
-def _snapshot(note: Note, edited_by: uuid.UUID) -> NoteVersion:
-    return NoteVersion(
-        note_id=note.id,
-        version_number=note.version,
-        content=note.content,
-        content_text=note.content_text,
-        edited_by=edited_by,
+async def persist_collaborative_note(
+    db: AsyncSession,
+    note_id: uuid.UUID,
+    user_id: uuid.UUID,
+    content: dict | None,
+    version: int,
+) -> Note:
+    note = await get_note(db, note_id)
+
+    note.content = content
+    note.content_text = extract_plain_text(content)
+    note.version = version
+
+    result = await db.execute(
+        select(NoteVersion).where(
+            NoteVersion.note_id == note_id,
+            NoteVersion.version_number == version,
+        )
     )
+    existing_version = result.scalar_one_or_none()
+
+    if existing_version is None:
+        db.add(_snapshot(note, user_id))
+    else:
+        existing_version.content = note.content
+        existing_version.content_text = note.content_text
+        existing_version.edited_by = user_id
+
+    await db.flush()
+    await db.refresh(note)
+    return note
 
 
 async def create_note(
@@ -76,9 +109,7 @@ async def create_note(
 
 async def list_notes(db: AsyncSession, notebook_id: uuid.UUID) -> list[Note]:
     result = await db.execute(
-        select(Note)
-        .where(Note.notebook_id == notebook_id)
-        .order_by(Note.sort_order)
+        select(Note).where(Note.notebook_id == notebook_id).order_by(Note.sort_order)
     )
     return list(result.scalars().all())
 

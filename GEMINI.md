@@ -76,12 +76,14 @@ pytest -v
 - **Dependency Injection:** Use FastAPI's `Depends` for services, database sessions, and auth.
 - **Schemas:** Use Pydantic V2 for request/response validation.
 - **Migrations:** All database schema changes must be handled via Alembic migrations (`alembic revision --autogenerate`).
+- **Code Comments:** Write clear, intentional comments for non-obvious business logic, concurrency, collaboration state handling, Redis coordination, and other code where the reasoning is not immediately obvious from the implementation. Prefer concise docstrings/comments that explain **why** something exists or works a certain way, not redundant comments that only restate **what** the code does.
 
 ### Frontend
 - **Type Safety:** Strict TypeScript usage. Define interfaces/types in `src/types/`.
 - **State Management:** Use Zustand for UI state and React Query for server-side state.
 - **Styling:** Use Tailwind CSS utility classes; avoid custom CSS where possible.
 - **Components:** Functional components with hooks. Prefer small, reusable components in `src/components/ui/`.
+- **Code Comments:** Add focused comments for non-obvious state synchronization, websocket lifecycle/reconnect behavior, editor delta application, and other subtle UI logic. Keep comments accurate and maintain them when the code changes.
 
 ### AI Generation
 - Quiz generation logic is encapsulated in `backend/app/services/ai_service.py` and processed asynchronously via Arq tasks in `backend/app/tasks/quiz_tasks.py`.

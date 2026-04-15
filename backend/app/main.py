@@ -14,6 +14,8 @@ from app.routers import notebooks as notebooks_router
 from app.routers import notes as notes_router
 from app.routers import search as search_router
 from app.routers import workspaces as workspaces_router
+from app.websocket import router as websocket_router
+from app.websocket.manager import manager as websocket_manager
 
 logger = logging.getLogger(__name__)
 
@@ -24,11 +26,13 @@ async def lifespan(app: FastAPI):
     try:
         await redis.ping()
         logger.info("Redis connection established")
+        await websocket_manager.start_pubsub()
     except Exception:
         logger.exception("Failed to connect to Redis")
 
     yield
 
+    await websocket_manager.stop_pubsub()
     await close_redis()
     await engine.dispose()
 
@@ -51,11 +55,16 @@ def create_app() -> FastAPI:
 
     app.include_router(auth_router.router, prefix=settings.API_V1_PREFIX)
     app.include_router(workspaces_router.router, prefix=settings.API_V1_PREFIX)
-    app.include_router(notebooks_router.workspace_notebooks_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(
+        notebooks_router.workspace_notebooks_router, prefix=settings.API_V1_PREFIX
+    )
     app.include_router(notebooks_router.notebooks_router, prefix=settings.API_V1_PREFIX)
-    app.include_router(notes_router.notebook_notes_router, prefix=settings.API_V1_PREFIX)
+    app.include_router(
+        notes_router.notebook_notes_router, prefix=settings.API_V1_PREFIX
+    )
     app.include_router(notes_router.notes_router, prefix=settings.API_V1_PREFIX)
     app.include_router(search_router.router, prefix=settings.API_V1_PREFIX)
+    app.include_router(websocket_router.router, prefix=settings.API_V1_PREFIX)
 
     return app
 
