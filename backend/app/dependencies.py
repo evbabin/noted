@@ -1,1 +1,92 @@
-# Shared DI: get_db, get_current_user, require_workspace_role
+import uuid
+from collections.abc import AsyncIterator, Iterable
+
+from fastapi import Depends, Path
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.config import get_settings
+from app.database import AsyncSessionLocal
+from app.exceptions import AuthenticationError, NotFoundError, PermissionDeniedError
+from app.models.user import User
+from app.models.workspace_member import MemberRole, WorkspaceMember
+from app.services import auth_service
+
+settings = get_settings()
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login", auto_error=False)
+
+
+async def get_db() -> AsyncIterator[AsyncSession]:
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+
+
+async def get_current_user(
+    token: str | None = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    if not token:
+        raise AuthenticationError("Not authenticated")
+    claims = auth_service.decode_token(token)
+    if claims.get("type") != "access":
+        raise AuthenticationError("Invalid token type")
+    try:
+        user_id = uuid.UUID(claims["sub"])
+    except (KeyError, ValueError) as e:
+        raise AuthenticationError("Invalid token subject") from e
+    user = await db.get(User, user_id)
+    if user is None or not user.is_active:
+        raise AuthenticationError("User not found or inactive")
+    return user
+
+
+_ROLE_RANK = {
+    MemberRole.VIEWER: 0,
+    MemberRole.COMMENTER: 1,
+    MemberRole.EDITOR: 2,
+    MemberRole.OWNER: 3,
+}
+
+
+def require_workspace_role(*allowed_roles: MemberRole):
+    """Dependency factory enforcing membership + role on workspace-scoped endpoints.
+
+    404 (not 403) when the user has no membership — don't leak workspace existence.
+    """
+    allowed = set(allowed_roles)
+
+    async def checker(
+        workspace_id: uuid.UUID = Path(...),
+        user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
+    ) -> WorkspaceMember:
+        result = await db.execute(
+            select(WorkspaceMember).where(
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.user_id == user.id,
+            )
+        )
+        membership = result.scalar_one_or_none()
+        if membership is None:
+            raise NotFoundError("Workspace not found")
+        if allowed and membership.role not in allowed:
+            raise PermissionDeniedError("Insufficient workspace role")
+        return membership
+
+    return checker
+
+
+def require_min_role(min_role: MemberRole):
+    """Convenience wrapper: allow `min_role` and any role above it in the hierarchy."""
+    threshold = _ROLE_RANK[min_role]
+    allowed: Iterable[MemberRole] = [r for r, rank in _ROLE_RANK.items() if rank >= threshold]
+    return require_workspace_role(*allowed)
