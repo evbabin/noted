@@ -7,7 +7,7 @@ import logging
 import uuid
 from contextlib import asynccontextmanager
 from copy import deepcopy
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, Literal, Protocol, TypedDict, cast
 
 from fastapi import WebSocket
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -86,6 +86,16 @@ _flush_tasks: dict[str, asyncio.Task[None]] = {}
 _flush_task_lock = asyncio.Lock()
 _local_drafts: dict[str, DraftState] = {}
 _local_draft_lock = asyncio.Lock()
+
+
+class PresenceRedis(Protocol):
+    async def hgetall(self, key: str) -> dict[str, str]: ...
+
+    async def hset(self, key: str, field: str, value: str) -> int: ...
+
+    async def expire(self, key: str, ttl: int) -> bool: ...
+
+    async def hdel(self, key: str, field: str) -> int: ...
 
 
 def user_color(user_id: uuid.UUID | str) -> str:
@@ -411,7 +421,7 @@ async def list_presence_users_from_redis(
     note_id: uuid.UUID | str,
 ) -> list[dict[str, Any]]:
     try:
-        redis = get_redis()
+        redis = cast(PresenceRedis, get_redis())
         key = f"collab:{note_id}:users"
         raw_users = await redis.hgetall(key)
     except Exception:
@@ -480,8 +490,8 @@ async def list_presence_users(
 
     users: list[dict[str, Any]] = []
     for user_id in user_ids:
-        user = user_lookup.get(user_id)
-        if user is None:
+        matched_user = user_lookup.get(user_id)
+        if matched_user is None:
             users.append(
                 {
                     "user_id": user_id,
@@ -491,7 +501,7 @@ async def list_presence_users(
                 }
             )
             continue
-        users.append(presence_user_payload(user))
+        users.append(presence_user_payload(matched_user))
     return users
 
 
@@ -736,7 +746,7 @@ async def handle_presence_ping(
     user: User,
 ) -> bool:
     try:
-        redis = get_redis()
+        redis = cast(PresenceRedis, get_redis())
         key = f"collab:{note_id}:users"
         await redis.hset(
             key,
@@ -762,7 +772,7 @@ async def clear_presence(
     user_id: uuid.UUID | str,
 ) -> bool:
     try:
-        redis = get_redis()
+        redis = cast(PresenceRedis, get_redis())
         key = f"collab:{note_id}:users"
         await redis.hdel(key, str(user_id))
         return True

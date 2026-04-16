@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.database import AsyncSessionLocal
 from app.exceptions import AuthenticationError, NotFoundError, PermissionDeniedError
+from app.models.note import Note
+from app.models.notebook import Notebook
 from app.models.user import User
 from app.models.workspace_member import MemberRole, WorkspaceMember
 from app.services import auth_service
@@ -91,8 +93,6 @@ def require_min_role(min_role: MemberRole):
     allowed: Iterable[MemberRole] = [r for r, rank in _ROLE_RANK.items() if rank >= threshold]
     return require_workspace_role(*allowed)
 
-from app.models.notebook import Notebook
-
 def require_notebook_role(*allowed_roles: MemberRole):
     """Dependency factory enforcing membership + role on notebook-scoped endpoints."""
     allowed = set(allowed_roles)
@@ -125,9 +125,6 @@ def require_min_notebook_role(min_role: MemberRole):
     threshold = _ROLE_RANK[min_role]
     allowed: Iterable[MemberRole] = [r for r, rank in _ROLE_RANK.items() if rank >= threshold]
     return require_notebook_role(*allowed)
-
-
-from app.models.note import Note
 
 
 def require_note_role(*allowed_roles: MemberRole):

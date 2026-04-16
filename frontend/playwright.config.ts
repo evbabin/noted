@@ -31,13 +31,12 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
   },
 
-  // Collaboration E2E requires both API and websocket availability. We start
-  // the backend here so frontend tests exercise the same auth + realtime stack
-  // the browser uses in development, rather than mocking either layer.
+  // Browser-level flows use the real backend, websocket server, and ARQ worker.
+  // The worker runs with AI_PROVIDER=mock so quiz generation stays deterministic
+  // and does not require external API keys in local or CI verification.
   webServer: [
     {
-      command:
-        "docker compose -f ../docker-compose.yml up -d --wait postgres redis && venv\\Scripts\\python -m alembic upgrade head && venv\\Scripts\\python -m uvicorn app.main:app --host localhost --port 8000",
+      command: `powershell -NoProfile -Command "$ErrorActionPreference = 'Stop'; docker compose -f ../docker-compose.yml up -d --wait postgres redis; & .\\venv\\Scripts\\python.exe -m alembic upgrade head; $worker = Start-Process -FilePath '.\\venv\\Scripts\\python.exe' -ArgumentList '-m','arq','app.tasks.worker.WorkerSettings' -PassThru; try { & .\\venv\\Scripts\\python.exe -m uvicorn app.main:app --host localhost --port 8000 } finally { if ($worker -and -not $worker.HasExited) { Stop-Process -Id $worker.Id } }"`,
       cwd: "../backend",
       url: `${backendBaseUrl}/health`,
       reuseExistingServer: !process.env.CI,
@@ -51,6 +50,7 @@ export default defineConfig({
           "postgresql+asyncpg://noted:noted@localhost:5432/noted",
         REDIS_URL: process.env.REDIS_URL ?? "redis://localhost:6379/0",
         JWT_SECRET_KEY: process.env.JWT_SECRET_KEY ?? "change-me-in-production",
+        AI_PROVIDER: process.env.AI_PROVIDER ?? "mock",
         CORS_ORIGINS:
           process.env.CORS_ORIGINS ??
           '["http://localhost:5173","http://127.0.0.1:5173"]',

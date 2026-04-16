@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import { notesApi } from "../api/notes";
 import { workspacesApi } from "../api/workspaces";
 import { NoteEditor } from "../components/editor/NoteEditor";
 import { AppShell } from "../components/layout/AppShell";
+import { Button } from "../components/ui/Button";
 import type {
   ApiError,
   Note,
@@ -24,6 +25,7 @@ export function NotePage() {
     workspaceId: string;
     noteId: string;
   }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: workspace } = useQuery<WorkspaceWithMembers>({
@@ -161,7 +163,18 @@ export function NotePage() {
                 placeholder="Untitled"
                 className="flex-1 border-0 bg-transparent text-3xl font-semibold text-gray-900 focus:outline-none focus:ring-0"
               />
-              <SaveIndicator status={status} version={note.version} />
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  data-testid="note-open-quizzes"
+                  onClick={() => navigate(`/notes/${note.id}/quizzes`)}
+                >
+                  Quizzes
+                </Button>
+                <SaveIndicator status={status} version={note.version} />
+              </div>
             </div>
 
             <NoteEditor noteId={note.id} initialContent={note.content} />

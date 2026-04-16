@@ -5,9 +5,9 @@ from collections import defaultdict
 from typing import Any, AsyncIterator
 
 import app.main as app_main
+import app.middleware.rate_limit as rate_limit_module
+import app.services.search_service as search_service
 import app.websocket.handlers as websocket_handlers
-
-websocket_manager_module = importlib.import_module("app.websocket.manager")
 import pytest
 import pytest_asyncio
 from app.dependencies import get_db as deps_get_db
@@ -26,11 +26,14 @@ from app.models import (  # noqa: F401 — register all models with Base.metadat
 from app.models.base import Base
 from app.services import auth_service
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
+
+websocket_manager_module = importlib.import_module("app.websocket.manager")
 
 TEST_DATABASE_URL = os.getenv(
     "TEST_DATABASE_URL",
@@ -174,8 +177,41 @@ class FakeAsyncRedis:
     def pubsub(self) -> FakePubSub:
         return FakePubSub(self)
 
+    def pipeline(self) -> "FakeAsyncRedisPipeline":
+        return FakeAsyncRedisPipeline(self)
+
     async def ping(self) -> bool:
         return True
+
+
+class FakeAsyncRedisPipeline:
+    """Tiny subset of Redis pipeline support used by the rate-limit middleware."""
+
+    def __init__(self, redis: FakeAsyncRedis) -> None:
+        self._redis = redis
+        self._commands: list[tuple[str, tuple[Any, ...]]] = []
+
+    def incr(self, key: str) -> "FakeAsyncRedisPipeline":
+        self._commands.append(("incr", (key,)))
+        return self
+
+    def expire(self, key: str, ttl: int) -> "FakeAsyncRedisPipeline":
+        self._commands.append(("expire", (key, ttl)))
+        return self
+
+    async def execute(self) -> list[int | bool]:
+        results: list[int | bool] = []
+        for command, args in self._commands:
+            if command == "incr":
+                key = args[0]
+                next_value = int(self._redis._store.get(key, "0")) + 1
+                self._redis._store[key] = str(next_value)
+                results.append(next_value)
+            elif command == "expire":
+                key, ttl = args
+                results.append(await self._redis.expire(key, ttl))
+        self._commands.clear()
+        return results
 
 
 @pytest.fixture
@@ -183,6 +219,8 @@ def fake_redis(monkeypatch: pytest.MonkeyPatch) -> FakeAsyncRedis:
     redis = FakeAsyncRedis()
 
     monkeypatch.setattr(auth_service, "get_redis", lambda: redis)
+    monkeypatch.setattr(rate_limit_module, "get_redis", lambda: redis)
+    monkeypatch.setattr(search_service, "get_redis", lambda: redis)
     monkeypatch.setattr(websocket_handlers, "get_redis", lambda: redis)
     monkeypatch.setattr(websocket_manager_module, "get_redis", lambda: redis)
     monkeypatch.setattr(app_main, "get_redis", lambda: redis)
@@ -196,8 +234,6 @@ async def db_session() -> AsyncIterator[AsyncSession]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
-        from sqlalchemy import text
-
         await conn.execute(
             text(
                 "ALTER TABLE notes ADD COLUMN IF NOT EXISTS search_vector tsvector GENERATED ALWAYS AS (setweight(to_tsvector('english', coalesce(title, '')), 'A') || setweight(to_tsvector('english', coalesce(content_text, '')), 'B')) STORED;"

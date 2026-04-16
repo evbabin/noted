@@ -53,7 +53,7 @@ export interface ContentUpdateMessage {
   data: ContentUpdateData;
 }
 
-export interface CursorUpdateData extends PresenceCursor {}
+export type CursorUpdateData = PresenceCursor;
 
 export interface CursorUpdateMessage {
   type: "cursor_update";

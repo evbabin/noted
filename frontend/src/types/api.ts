@@ -140,3 +140,53 @@ export interface SearchResponse {
   total: number;
   query: string;
 }
+
+export type QuizStatus = 'pending' | 'generating' | 'completed' | 'failed';
+export type QuestionType = 'multiple_choice' | 'fill_in_the_blank' | 'flashcard';
+
+export interface QuizSummary {
+  id: string;
+  note_id: string;
+  title: string;
+  status: QuizStatus;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuizQuestion {
+  id: string;
+  quiz_id: string;
+  question_type: QuestionType;
+  question_text: string;
+  // Only populated for multiple_choice; backend stores as { choices: string[] }
+  options: { choices: string[] } | null;
+  correct_answer: string;
+  explanation: string | null;
+  order: number;
+}
+
+export interface QuizResponse extends QuizSummary {
+  questions: QuizQuestion[];
+}
+
+export interface QuizCreateRequest {
+  title: string;
+  // Backend accepts 3–20; defaults to 10 if omitted
+  num_questions?: number;
+}
+
+export interface QuizAttemptCreateRequest {
+  answers: Record<string, string>;
+}
+
+export interface QuizAttemptResponse {
+  id: string;
+  quiz_id: string;
+  user_id: string;
+  score: number;
+  total_questions: number;
+  correct_count: number;
+  answers: Record<string, { answer: string; correct: boolean }>;
+  created_at: string;
+}

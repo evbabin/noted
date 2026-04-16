@@ -4,7 +4,7 @@ import asyncio
 import importlib
 import os
 import uuid
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import Iterator
 from typing import Any
 
 import app.database as database_module
@@ -545,16 +545,16 @@ async def test_handle_content_update_stages_broadcasts_and_persists_note_version
     db_session.add(owner)
     await db_session.flush()
 
-    workspace = Workspace(
+    workspace_obj = Workspace(
         name="Persistence Workspace",
         owner_id=owner.id,
     )
-    db_session.add(workspace)
+    db_session.add(workspace_obj)
     await db_session.flush()
 
     db_session.add(
         WorkspaceMember(
-            workspace_id=workspace.id,
+            workspace_id=workspace_obj.id,
             user_id=owner.id,
             role=MemberRole.OWNER,
         )
@@ -562,7 +562,7 @@ async def test_handle_content_update_stages_broadcasts_and_persists_note_version
 
     notebook_obj = Notebook(
         title="Persistence Notebook",
-        workspace_id=workspace.id,
+        workspace_id=workspace_obj.id,
     )
     db_session.add(notebook_obj)
     await db_session.flush()

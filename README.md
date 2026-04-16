@@ -10,7 +10,7 @@ Noted bridges the gap between note-taking and active recall. Write your study no
 
 - **📝 Rich Text Notes** — Organize notes in Workspaces → Notebooks → Notes with a TipTap-powered editor
 - **👥 Real-Time Collaboration** — Edit notes simultaneously with cursor awareness and presence indicators
-- **🤖 AI Quiz Generation** — Select any note and generate multiple-choice, fill-in-the-blank, and flashcard quizzes via Claude
+- **🤖 AI Quiz Generation** — Select any note and generate multiple-choice, fill-in-the-blank, and flashcard quizzes via AI (OpenAI, Gemini, or Groq)
 - **📊 Quiz Review Mode** — Interactive quiz interface with scoring and attempt history
 - **🔍 Full-Text Search** — Search across all notes in a workspace with ranked results and highlighted snippets
 - **🔐 Role-Based Access** — Invite members as Owner, Editor, Commenter, or Viewer
@@ -22,7 +22,7 @@ Noted bridges the gap between note-taking and active recall. Write your study no
 |---|---|
 | **Backend** | Python · FastAPI · SQLAlchemy (async) · PostgreSQL · Redis · ARQ |
 | **Frontend** | React · TypeScript · Vite · Tailwind CSS · Zustand · React Query · TipTap |
-| **AI** | Anthropic Claude API |
+| **AI** | OpenAI GPT-4o-mini (default) · Google Gemini · Groq — swappable via env var |
 | **Deploy** | Docker · k3s · AWS EC2 · GitHub Actions |
 
 ## Quick Start
