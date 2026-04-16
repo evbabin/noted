@@ -9,23 +9,26 @@ as they land in later tasks.
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from arq.connections import RedisSettings
 
 from app.config import get_settings
+from app.logging import configure_logging, get_logger
 from app.tasks.quiz_tasks import generate_quiz_task
 
-logger = logging.getLogger(__name__)
+settings = get_settings()
+configure_logging(level=settings.LOG_LEVEL, json_logs=settings.LOG_JSON)
+
+logger = get_logger(__name__)
 
 
 def _redis_settings() -> RedisSettings:
-    return RedisSettings.from_dsn(get_settings().REDIS_URL)
+    return RedisSettings.from_dsn(settings.REDIS_URL)
 
 
 async def startup(ctx: dict[str, Any]) -> None:
-    logger.info("ARQ worker starting (queue: %s)", WorkerSettings.queue_name)
+    logger.info("ARQ worker starting", queue_name=WorkerSettings.queue_name)
 
 
 async def shutdown(ctx: dict[str, Any]) -> None:

@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { isAxiosError } from "axios";
 import { useNavigate, useParams } from "react-router-dom";
-import toast from "react-hot-toast";
 
 import { notesApi } from "../api/notes";
 import { workspacesApi } from "../api/workspaces";
 import { NoteEditor } from "../components/editor/NoteEditor";
 import { AppShell } from "../components/layout/AppShell";
 import { Button } from "../components/ui/Button";
+import { LoadingState } from "../components/ui/LoadingState";
 import type {
-  ApiError,
   Note,
   NoteUpdateRequest,
   WorkspaceWithMembers,
@@ -28,20 +26,23 @@ export function NotePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: workspace } = useQuery<WorkspaceWithMembers>({
+  const { data: workspace, refetch: refetchWorkspace } = useQuery<WorkspaceWithMembers>({
     queryKey: ["workspace", workspaceId],
     queryFn: () => workspacesApi.get(workspaceId as string),
     enabled: Boolean(workspaceId),
+    meta: { errorMessage: "Failed to load workspace." },
   });
 
   const {
     data: note,
     isLoading,
     isError,
+    refetch: refetchNote,
   } = useQuery<Note>({
     queryKey: ["note", noteId],
     queryFn: () => notesApi.get(noteId as string),
     enabled: Boolean(noteId),
+    meta: { errorMessage: "Failed to load note." },
   });
 
   const [title, setTitle] = useState("");
@@ -64,6 +65,7 @@ export function NotePage() {
   const saveTitleMutation = useMutation({
     mutationFn: (payload: NoteUpdateRequest) =>
       notesApi.update(noteId as string, payload),
+    meta: { errorMessage: "Failed to save note title." },
     onMutate: () => setStatus("saving"),
     onSuccess: (updated) => {
       queryClient.setQueryData(["note", noteId], updated);
@@ -75,9 +77,8 @@ export function NotePage() {
 
       setStatus("saved");
     },
-    onError: (err) => {
+    onError: () => {
       setStatus("error");
-      toast.error(extractErrorDetail(err) ?? "Failed to save note title");
     },
   });
 
@@ -141,15 +142,32 @@ export function NotePage() {
       workspaceName={workspace?.name}
       title={title || note?.title}
     >
-      <div className="mx-auto max-w-3xl px-8 py-8">
-        {isLoading && <p className="text-sm text-gray-500">Loading note…</p>}
+      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
+        {isLoading && (
+          <LoadingState
+            title="Loading note…"
+            message="Syncing the latest note content and collaborators."
+          />
+        )}
         {isError && (
-          <p className="text-sm text-red-600">Failed to load note.</p>
+          <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">
+            Failed to load note.{` `}
+            <button
+              type="button"
+              onClick={() => {
+                void refetchWorkspace();
+                void refetchNote();
+              }}
+              className="underline hover:no-underline"
+            >
+              Retry
+            </button>
+          </div>
         )}
 
         {note && (
           <>
-            <div className="mb-2 flex items-center justify-between gap-4">
+            <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <input
                 type="text"
                 aria-label="Note title"
@@ -161,13 +179,14 @@ export function NotePage() {
                 }}
                 onBlur={flushTitleSave}
                 placeholder="Untitled"
-                className="flex-1 border-0 bg-transparent text-3xl font-semibold text-gray-900 focus:outline-none focus:ring-0"
+                className="min-w-0 flex-1 border-0 bg-transparent text-2xl font-semibold text-gray-900 focus:outline-none focus:ring-0 sm:text-3xl"
               />
-              <div className="flex items-center gap-3">
+              <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto"
                   data-testid="note-open-quizzes"
                   onClick={() => navigate(`/notes/${note.id}/quizzes`)}
                 >
@@ -215,17 +234,6 @@ function SaveIndicator({
         : "text-gray-500";
 
   return <span className={`whitespace-nowrap text-xs ${color}`}>{label}</span>;
-}
-
-function extractErrorDetail(err: unknown): string | null {
-  if (isAxiosError<ApiError>(err)) {
-    const detail = err.response?.data?.detail;
-    if (typeof detail === "string") {
-      return detail;
-    }
-  }
-
-  return null;
 }
 
 export default NotePage;

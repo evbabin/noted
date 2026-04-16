@@ -1,8 +1,9 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
 
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { AppToaster } from './components/ui/Toast';
+import { queryClient } from './lib/queryClient';
 import { Dashboard } from './pages/Dashboard';
 import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
@@ -12,16 +13,6 @@ import { QuizPage } from './pages/QuizPage';
 import { QuizReviewPage } from './pages/QuizReviewPage';
 import { Register } from './pages/Register';
 import { Workspace } from './pages/Workspace';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-      staleTime: 30_000,
-    },
-  },
-});
 
 export function App() {
   return (
@@ -44,7 +35,7 @@ export function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
-      <Toaster position="top-right" />
+      <AppToaster />
     </QueryClientProvider>
   );
 }

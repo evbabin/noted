@@ -8,7 +8,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from typing import Any
 
-from fastapi import WebSocket
+from fastapi import WebSocket, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -211,6 +211,34 @@ class ConnectionManager:
     async def room_size(self, note_id: uuid.UUID | str) -> int:
         async with self._lock:
             return len(self.active_connections.get(str(note_id), {}))
+
+    async def close_user_connections(
+        self,
+        note_ids: Iterable[uuid.UUID | str],
+        user_id: uuid.UUID | str,
+        *,
+        close_code: int = status.WS_1008_POLICY_VIOLATION,
+    ) -> None:
+        """Force-close a user's sockets across multiple note rooms."""
+        user_key = str(user_id)
+        for note_id in note_ids:
+            note_key = str(note_id)
+            async with self._lock:
+                websocket = self.active_connections.get(note_key, {}).get(user_key)
+
+            if websocket is None:
+                continue
+
+            try:
+                await websocket.close(code=close_code)
+            except Exception:
+                logger.exception(
+                    "Failed to close websocket for note %s and user %s",
+                    note_key,
+                    user_key,
+                )
+
+            await self.disconnect(note_key, user_key)
 
     def channel_name(self, note_id: uuid.UUID | str) -> str:
         return f"collab:{note_id}:events"

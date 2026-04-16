@@ -4,7 +4,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { QuizGenerator } from '../components/quiz/QuizGenerator';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { Spinner } from '../components/ui/Spinner';
+import { EmptyState } from '../components/ui/EmptyState';
+import { LoadingState } from '../components/ui/LoadingState';
 import { useNote } from '../hooks/useNote';
 import { useQuizzes } from '../hooks/useQuiz';
 
@@ -17,12 +18,13 @@ export function QuizPage() {
   // can't build the full /workspaces/:wid/notes/:nid path; navigate(-1) handles
   // the back button instead.
   const { data: note } = useNote(noteId);
-  const { data: quizzes, isLoading, isError } = useQuizzes(noteId ?? '');
+  const { data: quizzes, isLoading, isError, refetch } = useQuizzes(noteId ?? '');
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-10 space-y-8">
+    <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:space-y-8 sm:px-6 sm:py-10">
       <div>
         <button
+          type="button"
           onClick={() => navigate(-1)}
           className="mb-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
         >
@@ -43,19 +45,27 @@ export function QuizPage() {
         <h3 className="text-lg font-medium text-gray-900 mb-4">Past Quizzes</h3>
 
         {isLoading ? (
-          <div className="flex justify-center py-10">
-            <Spinner className="w-6 h-6 text-blue-600" />
-          </div>
+          <LoadingState
+            title="Loading quizzes…"
+            message="Fetching previous quiz runs for this note."
+          />
         ) : isError ? (
-          <p className="text-sm text-red-600 border border-red-200 bg-red-50 rounded-lg p-4">
-            Failed to load quizzes. Please refresh and try again.
-          </p>
+          <div className="text-sm text-red-600 border border-red-200 bg-red-50 rounded-lg p-4">
+            Failed to load quizzes.{` `}
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="underline hover:no-underline"
+            >
+              Retry
+            </button>
+          </div>
         ) : quizzes && quizzes.length > 0 ? (
           <div className="space-y-3">
             {quizzes.map((quiz) => (
               <div
                 key={quiz.id}
-                className="flex items-center justify-between p-4 border rounded-lg bg-white shadow-sm"
+                className="flex flex-col gap-4 rounded-lg border bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-3">
@@ -83,8 +93,8 @@ export function QuizPage() {
                   )}
                 </div>
                 {quiz.status === 'completed' && (
-                  <Link to={`/quizzes/${quiz.id}`} className="ml-4 flex-shrink-0">
-                    <Button variant="outline" size="sm">
+                  <Link to={`/quizzes/${quiz.id}`} className="w-full flex-shrink-0 sm:ml-4 sm:w-auto">
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
                       Take Quiz
                     </Button>
                   </Link>
@@ -93,9 +103,10 @@ export function QuizPage() {
             ))}
           </div>
         ) : (
-          <p className="text-gray-500 italic border border-dashed rounded-lg p-6 text-center">
-            No quizzes generated yet. Generate your first one above!
-          </p>
+          <EmptyState
+            title="No quizzes generated yet"
+            description="Generate your first quiz above to turn this note into a study session."
+          />
         )}
       </div>
     </div>

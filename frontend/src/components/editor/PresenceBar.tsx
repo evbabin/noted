@@ -1,4 +1,5 @@
 import Avatar from "../ui/Avatar";
+import { EmptyState } from "../ui/EmptyState";
 import {
   selectPresenceUsers,
   usePresenceStore,
@@ -15,18 +16,13 @@ export function PresenceBar() {
 
   if (users.length === 0) {
     return (
-      <div
-        data-testid="presence-bar-empty"
-        className="mb-3 flex items-center justify-between rounded-md border border-dashed border-gray-200 bg-gray-50 px-3 py-2"
-      >
-        <div>
-          <p className="text-sm font-medium text-gray-700">
-            No active collaborators
-          </p>
-          <p className="text-xs text-gray-500">
-            When someone joins this note, their presence will appear here.
-          </p>
-        </div>
+      <div data-testid="presence-bar-empty" className="mb-3">
+        <EmptyState
+          compact
+          title="No active collaborators"
+          description="When someone joins this note, their presence will appear here."
+          className="border-gray-200 bg-gray-50"
+        />
       </div>
     );
   }

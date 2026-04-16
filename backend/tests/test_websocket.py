@@ -35,6 +35,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
+from starlette.websockets import WebSocketDisconnect
 
 websocket_manager_module = importlib.import_module("app.websocket.manager")
 
@@ -526,6 +527,37 @@ def test_websocket_connect_returns_sync_state(
         assert payload["data"]["content"] == _empty_doc()
         assert payload["data"]["version"] == 1
         assert {user["user_id"] for user in payload["data"]["users"]} == {owner_id}
+
+
+def test_member_removal_closes_active_websocket(
+    websocket_client: tuple[TestClient, async_sessionmaker[AsyncSession]],
+) -> None:
+    """Removing a collaborator should immediately revoke their websocket session."""
+    client, session_factory = websocket_client
+    context = asyncio.run(
+        _create_collaboration_context(
+            session_factory,
+            owner_email="disconnect-owner@example.com",
+            member_email="disconnect-member@example.com",
+        )
+    )
+
+    owner_headers = {"Authorization": f"Bearer {context['owner_token']}"}
+
+    with client.websocket_connect(
+        f"/api/v1/ws/{context['note_id']}?token={context['member_token']}"
+    ) as websocket:
+        payload = websocket.receive_json()
+        assert payload["type"] == "sync_state"
+
+        remove_response = client.delete(
+            f"/api/v1/workspaces/{context['workspace_id']}/members/{context['member'].id}",
+            headers=owner_headers,
+        )
+        assert remove_response.status_code == 204
+
+        with pytest.raises(WebSocketDisconnect):
+            websocket.receive_json()
 
 
 @pytest.mark.asyncio

@@ -7,6 +7,7 @@ from typing import Any, AsyncIterator
 import app.main as app_main
 import app.middleware.rate_limit as rate_limit_module
 import app.services.search_service as search_service
+import app.services.sharing_service as sharing_service
 import app.websocket.handlers as websocket_handlers
 import pytest
 import pytest_asyncio
@@ -221,6 +222,7 @@ def fake_redis(monkeypatch: pytest.MonkeyPatch) -> FakeAsyncRedis:
     monkeypatch.setattr(auth_service, "get_redis", lambda: redis)
     monkeypatch.setattr(rate_limit_module, "get_redis", lambda: redis)
     monkeypatch.setattr(search_service, "get_redis", lambda: redis)
+    monkeypatch.setattr(sharing_service, "get_redis", lambda: redis)
     monkeypatch.setattr(websocket_handlers, "get_redis", lambda: redis)
     monkeypatch.setattr(websocket_manager_module, "get_redis", lambda: redis)
     monkeypatch.setattr(app_main, "get_redis", lambda: redis)

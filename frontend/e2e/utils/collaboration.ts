@@ -9,6 +9,7 @@ import {
 const DEFAULT_API_BASE_URL = "http://localhost:8000/api/v1";
 const ACCESS_TOKEN_KEY = "access_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
+const AUTH_STORE_KEY = "noted-auth";
 
 export interface SeedUser {
   email: string;
@@ -71,10 +72,17 @@ interface WorkspaceMemberResponse {
   role: "owner" | "editor" | "commenter" | "viewer";
 }
 
+interface WorkspaceInvitationResponse {
+  workspace_id: string;
+  email: string;
+  role: "owner" | "editor" | "commenter" | "viewer";
+  status: "pending";
+}
+
 interface JsonRequestOptions {
   data?: unknown;
   token?: string;
-  expectedStatus?: number;
+  expectedStatus?: number | number[];
 }
 
 export function getApiBaseUrl(): string {
@@ -169,26 +177,36 @@ export async function createNote(
   );
 }
 
-export async function addWorkspaceMember(
+export async function inviteWorkspaceMember(
   request: APIRequestContext,
   token: string,
   workspaceId: string,
-  userId: string,
+  email: string,
   role: "editor" | "commenter" | "viewer",
-): Promise<WorkspaceMemberResponse> {
-  return requestJson<WorkspaceMemberResponse>(
+): Promise<WorkspaceMemberResponse | WorkspaceInvitationResponse> {
+  return requestJson<WorkspaceMemberResponse | WorkspaceInvitationResponse>(
     request,
     "POST",
-    `/workspaces/${workspaceId}/members`,
+    `/workspaces/${workspaceId}/invitations`,
     {
       token,
       data: {
-        user_id: userId,
+        email,
         role,
       },
-      expectedStatus: 200,
+      expectedStatus: [201, 202],
     },
   );
+}
+
+export async function getNote(
+  request: APIRequestContext,
+  token: string,
+  noteId: string,
+): Promise<NoteResponse> {
+  return requestJson<NoteResponse>(request, "GET", `/notes/${noteId}`, {
+    token,
+  });
 }
 
 export async function seedCollaborationWorkspace(
@@ -206,11 +224,11 @@ export async function seedCollaborationWorkspace(
     description: "Seeded by Playwright collaboration test",
   });
 
-  await addWorkspaceMember(
+  await inviteWorkspaceMember(
     request,
     owner.access_token,
     workspace.id,
-    collaborator.user.id,
+    collaborator.user.email,
     "editor",
   );
 
@@ -246,40 +264,79 @@ export async function createAuthenticatedContext(
   const context = await browser.newContext();
 
   await context.addInitScript(
-    ({ accessToken, refreshToken, origin, accessKey, refreshKey }) => {
+    ({
+      accessToken,
+      refreshToken,
+      authUser,
+      origin,
+      accessKey,
+      refreshKey,
+      authKey,
+    }) => {
+      const authState = JSON.stringify({
+        state: {
+          user: authUser,
+          isAuthenticated: true,
+        },
+        version: 0,
+      });
+
       if (window.location.origin === origin) {
         window.localStorage.setItem(accessKey, accessToken);
         window.localStorage.setItem(refreshKey, refreshToken);
+        window.localStorage.setItem(authKey, authState);
       }
 
       window.addEventListener("DOMContentLoaded", () => {
         if (window.location.origin === origin) {
           window.localStorage.setItem(accessKey, accessToken);
           window.localStorage.setItem(refreshKey, refreshToken);
+          window.localStorage.setItem(authKey, authState);
         }
       });
     },
     {
       accessToken: auth.access_token,
       refreshToken: auth.refresh_token,
+      authUser: auth.user,
       origin: trimTrailingSlash(frontendBaseUrl),
       accessKey: ACCESS_TOKEN_KEY,
       refreshKey: REFRESH_TOKEN_KEY,
+      authKey: AUTH_STORE_KEY,
     },
   );
 
   const bootstrapPage = await context.newPage();
   await bootstrapPage.goto(frontendBaseUrl, { waitUntil: "domcontentloaded" });
   await bootstrapPage.evaluate(
-    ({ accessToken, refreshToken, accessKey, refreshKey }) => {
+    ({
+      accessToken,
+      refreshToken,
+      authUser,
+      accessKey,
+      refreshKey,
+      authKey,
+    }) => {
       window.localStorage.setItem(accessKey, accessToken);
       window.localStorage.setItem(refreshKey, refreshToken);
+      window.localStorage.setItem(
+        authKey,
+        JSON.stringify({
+          state: {
+            user: authUser,
+            isAuthenticated: true,
+          },
+          version: 0,
+        }),
+      );
     },
     {
       accessToken: auth.access_token,
       refreshToken: auth.refresh_token,
+      authUser: auth.user,
       accessKey: ACCESS_TOKEN_KEY,
       refreshKey: REFRESH_TOKEN_KEY,
+      authKey: AUTH_STORE_KEY,
     },
   );
   await bootstrapPage.close();
@@ -366,13 +423,15 @@ async function requestJson<T>(
     data: options.data,
   });
 
-  const expectedStatus = options.expectedStatus ?? 200;
+  const expectedStatuses = Array.isArray(options.expectedStatus)
+    ? options.expectedStatus
+    : [options.expectedStatus ?? 200];
   const responseText = await response.text();
 
   expect(
-    response.status(),
-    `Expected ${method} ${url} to return ${expectedStatus}, received ${response.status()} with body: ${responseText}`,
-  ).toBe(expectedStatus);
+    expectedStatuses.includes(response.status()),
+    `Expected ${method} ${url} to return one of ${expectedStatuses.join(", ")}, received ${response.status()} with body: ${responseText}`,
+  ).toBe(true);
 
   if (!responseText) {
     return undefined as T;

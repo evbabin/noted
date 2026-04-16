@@ -50,7 +50,7 @@ export interface ApiError {
   detail: string | unknown;
 }
 
-export type MemberRole = 'owner' | 'editor' | 'commenter' | 'viewer';
+export type MemberRole = "owner" | "editor" | "commenter" | "viewer";
 
 export interface Workspace {
   id: string;
@@ -74,6 +74,28 @@ export interface WorkspaceMember {
 export interface WorkspaceWithMembers extends Workspace {
   members: WorkspaceMember[];
 }
+
+export interface InviteWorkspaceMemberRequest {
+  email: string;
+  role: MemberRole;
+}
+
+export interface UpdateWorkspaceMemberRoleRequest {
+  role: MemberRole;
+}
+
+export interface WorkspaceInvitationResponse {
+  workspace_id: string;
+  email: string;
+  role: MemberRole;
+  invited_by_user_id: string;
+  created_at: string;
+  status: "pending";
+}
+
+export type WorkspaceInviteResult =
+  | WorkspaceMember
+  | WorkspaceInvitationResponse;
 
 export interface WorkspaceCreateRequest {
   name: string;
@@ -141,8 +163,11 @@ export interface SearchResponse {
   query: string;
 }
 
-export type QuizStatus = 'pending' | 'generating' | 'completed' | 'failed';
-export type QuestionType = 'multiple_choice' | 'fill_in_the_blank' | 'flashcard';
+export type QuizStatus = "pending" | "generating" | "completed" | "failed";
+export type QuestionType =
+  | "multiple_choice"
+  | "fill_in_the_blank"
+  | "flashcard";
 
 export interface QuizSummary {
   id: string;

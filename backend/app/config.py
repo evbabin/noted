@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     APP_NAME: str = "Noted API"
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
+    LOG_LEVEL: str = "INFO"
+    LOG_JSON: bool = True
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://noted:noted@localhost:5432/noted"

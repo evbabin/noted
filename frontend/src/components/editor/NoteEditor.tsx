@@ -18,6 +18,7 @@ import {
   serializeDocument,
 } from "./collaboration";
 import { PresenceBar } from "./PresenceBar";
+import { LoadingState } from "../ui/LoadingState";
 
 interface NoteEditorProps {
   noteId: string;
@@ -338,7 +339,12 @@ export function NoteEditor({
   }, [flushCursorUpdate, flushQueuedUpdate, websocketStatus]);
 
   if (!editor) {
-    return <p className="text-sm text-gray-500">Loading editor…</p>;
+    return (
+      <LoadingState
+        title="Loading editor…"
+        message="Preparing the collaborative editing surface."
+      />
+    );
   }
 
   return (

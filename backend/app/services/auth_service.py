@@ -120,6 +120,8 @@ async def rotate_refresh_token(token: str, db: AsyncSession) -> tuple[User, str,
 
 
 async def register_user(db: AsyncSession, data: RegisterRequest) -> User:
+    from app.services import sharing_service
+
     existing = await db.execute(select(User).where(User.email == data.email))
     if existing.scalar_one_or_none() is not None:
         raise ConflictError("A user with this email already exists")
@@ -130,6 +132,7 @@ async def register_user(db: AsyncSession, data: RegisterRequest) -> User:
     )
     db.add(user)
     await db.flush()
+    await sharing_service.accept_pending_invitations(db, user)
     await db.refresh(user)
     return user
 
@@ -149,6 +152,8 @@ def google_authorization_url(state: str | None = None) -> str:
 
 
 async def google_oauth_flow(db: AsyncSession, code: str) -> User:
+    from app.services import sharing_service
+
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise AuthenticationError("Google OAuth is not configured")
 
@@ -208,6 +213,7 @@ async def google_oauth_flow(db: AsyncSession, code: str) -> User:
         raise AuthenticationError("Account is disabled")
 
     await db.flush()
+    await sharing_service.accept_pending_invitations(db, user)
     await db.refresh(user)
     return user
 

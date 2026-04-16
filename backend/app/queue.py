@@ -8,15 +8,14 @@ the generic ``redis.asyncio`` pool used for caching / presence).
 
 from __future__ import annotations
 
-import logging
-
 from arq import create_pool
 from arq.connections import ArqRedis, RedisSettings
 
 from app.config import get_settings
+from app.logging import get_logger
 from app.tasks.worker import WorkerSettings
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _pool: ArqRedis | None = None
 

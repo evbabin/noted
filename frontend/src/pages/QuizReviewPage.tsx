@@ -1,6 +1,8 @@
 import { Link, useParams } from 'react-router-dom';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { EmptyState } from '../components/ui/EmptyState';
+import { LoadingState } from '../components/ui/LoadingState';
 import { Spinner } from '../components/ui/Spinner';
 import { QuizCard } from '../components/quiz/QuizCard';
 import { QuizReview } from '../components/quiz/QuizReview';
@@ -39,7 +41,7 @@ function QuizSession({ quiz }: { quiz: QuizResponse }) {
   if (phase === 'review' && attempt) {
     return (
       <div className="space-y-6">
-        <div className="flex justify-end">
+        <div className="flex justify-start sm:justify-end">
           <Button variant="outline" size="sm" onClick={resetSession}>
             Retake Quiz
           </Button>
@@ -54,7 +56,7 @@ function QuizSession({ quiz }: { quiz: QuizResponse }) {
     <div className="space-y-6">
       {/* Progress bar */}
       <div className="space-y-1.5">
-        <div className="flex justify-between text-sm text-gray-500">
+        <div className="flex flex-col gap-1 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
           <span>
             Question <span className="font-medium text-gray-900">{currentIndex + 1}</span>{' '}
             of {totalQuestions}
@@ -89,7 +91,7 @@ function QuizSession({ quiz }: { quiz: QuizResponse }) {
       )}
 
       {/* Prev / Next / Submit navigation */}
-      <div className="flex justify-between items-center pt-2">
+      <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
         <Button
           variant="outline"
           onClick={goToPrev}
@@ -123,16 +125,30 @@ export function QuizReviewPage() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <Spinner className="w-8 h-8 text-blue-600" />
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+        <LoadingState
+          title="Loading quiz…"
+          message="Fetching questions and the latest attempt history."
+        />
       </div>
     );
   }
 
   if (error || !quiz) {
     return (
-      <div className="p-6 text-center text-red-600">
-        Failed to load quiz. Please try again.
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+        <EmptyState
+          title="Quiz unavailable"
+          description="We couldn't load this quiz right now. Please go back and try again."
+          action={
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
+            >
+              Back to dashboard
+            </Link>
+          }
+        />
       </div>
     );
   }
@@ -141,27 +157,32 @@ export function QuizReviewPage() {
   // while generation is still in progress).
   if (quiz.status !== 'completed' || quiz.questions.length === 0) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-16 text-center space-y-4">
-        <p className="text-gray-600">
-          {quiz.status === 'failed'
-            ? 'Quiz generation failed. Please go back and try again.'
-            : 'Quiz is not ready yet — please wait for generation to complete.'}
-        </p>
-        <Link
-          to={`/notes/${quiz.note_id}/quizzes`}
-          className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Quizzes
-        </Link>
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+        <EmptyState
+          title={quiz.status === 'failed' ? 'Quiz generation failed' : 'Quiz is not ready yet'}
+          description={
+            quiz.status === 'failed'
+              ? 'Generation did not complete successfully. Return to the quiz list and try again.'
+              : 'This quiz is still being generated. Return to the quiz list and check back in a moment.'
+          }
+          action={
+            <Link
+              to={`/notes/${quiz.note_id}/quizzes`}
+              className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Quizzes
+            </Link>
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10 space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
       {/* Page header */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
         <Link
           to={`/notes/${quiz.note_id}/quizzes`}
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"

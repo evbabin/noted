@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 from app.models.workspace_member import MemberRole
 from app.schemas.user import UserResponse
@@ -49,3 +50,21 @@ class WorkspaceWithMembersResponse(WorkspaceResponse):
 class AddWorkspaceMemberRequest(BaseModel):
     user_id: uuid.UUID
     role: MemberRole
+
+
+class InviteWorkspaceMemberRequest(BaseModel):
+    email: EmailStr
+    role: MemberRole
+
+
+class UpdateWorkspaceMemberRoleRequest(BaseModel):
+    role: MemberRole
+
+
+class WorkspaceInvitationResponse(BaseModel):
+    workspace_id: uuid.UUID
+    email: EmailStr
+    role: MemberRole
+    invited_by_user_id: uuid.UUID
+    created_at: datetime
+    status: Literal["pending"] = "pending"

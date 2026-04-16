@@ -1,4 +1,3 @@
-import logging
 import re
 import time
 from collections.abc import Awaitable, Callable
@@ -9,10 +8,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
 from app.exceptions import RateLimitError
+from app.logging import get_logger
 from app.models.user import User
 from app.redis import get_redis
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _PERIODS = {
     "second": 1,

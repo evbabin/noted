@@ -51,6 +51,8 @@ export default defineConfig({
         REDIS_URL: process.env.REDIS_URL ?? "redis://localhost:6379/0",
         JWT_SECRET_KEY: process.env.JWT_SECRET_KEY ?? "change-me-in-production",
         AI_PROVIDER: process.env.AI_PROVIDER ?? "mock",
+        RATE_LIMIT_DEFAULT: process.env.RATE_LIMIT_DEFAULT ?? "1000/minute",
+        RATE_LIMIT_AI: process.env.RATE_LIMIT_AI ?? "100/minute",
         CORS_ORIGINS:
           process.env.CORS_ORIGINS ??
           '["http://localhost:5173","http://127.0.0.1:5173"]',

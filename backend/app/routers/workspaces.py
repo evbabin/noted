@@ -7,9 +7,7 @@ from app.dependencies import get_current_user, get_db, require_min_role, require
 from app.models.user import User
 from app.models.workspace_member import MemberRole
 from app.schemas.workspace import (
-    AddWorkspaceMemberRequest,
     WorkspaceCreate,
-    WorkspaceMemberResponse,
     WorkspaceResponse,
     WorkspaceUpdate,
     WorkspaceWithMembersResponse,
@@ -62,23 +60,3 @@ async def delete_workspace(
     membership=Depends(require_workspace_role(MemberRole.OWNER)),
 ):
     await workspace_service.delete_workspace(db, workspace_id)
-
-
-@router.post("/{workspace_id}/members", response_model=WorkspaceMemberResponse)
-async def add_workspace_member(
-    workspace_id: uuid.UUID,
-    data: AddWorkspaceMemberRequest,
-    db: AsyncSession = Depends(get_db),
-    membership=Depends(require_min_role(MemberRole.OWNER)),
-):
-    return await workspace_service.add_workspace_member(db, workspace_id, data.user_id, data.role)
-
-
-@router.delete("/{workspace_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def remove_workspace_member(
-    workspace_id: uuid.UUID,
-    user_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
-    membership=Depends(require_min_role(MemberRole.OWNER)),
-):
-    await workspace_service.remove_workspace_member(db, workspace_id, user_id)

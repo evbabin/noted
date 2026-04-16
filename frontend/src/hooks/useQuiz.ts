@@ -7,6 +7,7 @@ import {
   submitQuizAttempt,
   getQuizAttempts,
 } from '../api/quizzes';
+import type { ErrorHandlingMeta } from '../lib/errors';
 import {
   QuizAttemptCreateRequest,
   QuizAttemptResponse,
@@ -14,6 +15,14 @@ import {
   QuizQuestion,
   QuizResponse,
 } from '../types/api';
+
+const quizzesErrorMeta: ErrorHandlingMeta = {
+  errorMessage: 'Failed to load quizzes.',
+};
+
+const quizErrorMeta: ErrorHandlingMeta = {
+  errorMessage: 'Failed to load quiz.',
+};
 
 // ---------------------------------------------------------------------------
 // Server-state hooks (React Query wrappers)
@@ -24,6 +33,7 @@ export const useQuizzes = (noteId: string) => {
     queryKey: ['quizzes', noteId],
     queryFn: () => getQuizzesForNote(noteId),
     enabled: !!noteId,
+    meta: quizzesErrorMeta,
   });
 };
 
@@ -32,6 +42,7 @@ export const useQuiz = (quizId: string) => {
     queryKey: ['quiz', quizId],
     queryFn: () => getQuiz(quizId),
     enabled: !!quizId,
+    meta: quizErrorMeta,
   });
 };
 
@@ -45,6 +56,10 @@ export const useQuizPolling = (quizId: string, shouldPoll: boolean) => {
     queryKey: ['quiz', quizId],
     queryFn: () => getQuiz(quizId),
     enabled: !!quizId,
+    meta: {
+      errorMessage: 'Failed to refresh quiz status.',
+      suppressErrorToast: true,
+    },
     refetchInterval: (query) => {
       const isTerminal =
         query.state.data?.status === 'completed' ||
@@ -60,6 +75,7 @@ export const useCreateQuiz = () => {
   return useMutation({
     mutationFn: ({ noteId, data }: { noteId: string; data: QuizCreateRequest }) =>
       createQuiz(noteId, data),
+    meta: { errorMessage: 'Failed to start quiz generation.' },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['quizzes', variables.noteId] });
     },
@@ -72,6 +88,7 @@ export const useSubmitQuizAttempt = () => {
   return useMutation({
     mutationFn: ({ quizId, data }: { quizId: string; data: QuizAttemptCreateRequest }) =>
       submitQuizAttempt(quizId, data),
+    meta: { errorMessage: 'Failed to submit quiz.' },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['quiz-attempts', variables.quizId] });
     },
@@ -83,6 +100,9 @@ export const useQuizAttempts = (quizId: string) => {
     queryKey: ['quiz-attempts', quizId],
     queryFn: () => getQuizAttempts(quizId),
     enabled: !!quizId,
+    meta: {
+      errorMessage: 'Failed to load quiz attempts.',
+    },
   });
 };
 

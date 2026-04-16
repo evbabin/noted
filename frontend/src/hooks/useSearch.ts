@@ -1,12 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { searchApi } from '../api/search';
+import type { ErrorHandlingMeta } from '../lib/errors';
 import type { SearchResponse } from '../types/api';
 
 export const searchKeys = {
   all: ['search'] as const,
   query: (workspaceId: string, q: string, limit: number, offset: number) =>
     [...searchKeys.all, workspaceId, q, limit, offset] as const,
+};
+
+const searchErrorMeta: ErrorHandlingMeta = {
+  errorMessage: 'Search failed. Please try again.',
+  suppressErrorToast: true,
 };
 
 interface UseSearchOptions {
@@ -31,5 +37,6 @@ export function useSearch({
       searchApi.search(workspaceId as string, trimmed, limit, offset),
     enabled: enabled && Boolean(workspaceId) && trimmed.length > 0,
     staleTime: 60_000,
+    meta: searchErrorMeta,
   });
 }

@@ -54,12 +54,12 @@ export function QuizGenerator({ noteId }: QuizGeneratorProps) {
   };
 
   return (
-    <div className="bg-white border rounded-lg p-6 shadow-sm">
+    <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
       <h3 className="text-lg font-medium text-gray-900 mb-4">Generate New Quiz</h3>
 
       {showForm ? (
         <div className="space-y-4">
-          <form onSubmit={handleGenerate} className="flex gap-3">
+          <form onSubmit={handleGenerate} className="flex flex-col gap-3 sm:flex-row">
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -72,6 +72,7 @@ export function QuizGenerator({ noteId }: QuizGeneratorProps) {
             <Button
               type="submit"
               data-testid="quiz-generator-submit"
+              className="w-full sm:w-auto"
               disabled={createQuiz.isPending || !title.trim()}
             >
               {createQuiz.isPending && <Spinner className="w-4 h-4 mr-2" />}
@@ -80,12 +81,12 @@ export function QuizGenerator({ noteId }: QuizGeneratorProps) {
           </form>
 
           {/* Number-of-questions selector (backend range: 3–20) */}
-          <div className="flex items-center gap-3 text-sm text-gray-600">
+          <div className="flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:gap-3">
             <span className="whitespace-nowrap">
               Questions:{' '}
               <span className="font-semibold text-gray-900">{numQuestions}</span>
             </span>
-            <div className="flex items-center gap-2 flex-1">
+            <div className="flex items-center gap-2 sm:flex-1">
               <span className="text-xs text-gray-400">3</span>
               <input
                 type="range"
@@ -144,14 +145,19 @@ export function QuizGenerator({ noteId }: QuizGeneratorProps) {
                   Quiz &ldquo;{activeQuiz!.title}&rdquo; generated successfully!
                 </p>
               </div>
-              <div className="flex gap-3 mt-4">
+              <div className="mt-4 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
                 <Button
                   data-testid="quiz-generator-take-quiz"
+                  className="w-full sm:w-auto"
                   onClick={() => navigate(`/quizzes/${activeQuiz!.id}`)}
                 >
                   Take Quiz Now
                 </Button>
-                <Button variant="outline" onClick={() => setActiveQuizId(null)}>
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={() => setActiveQuizId(null)}
+                >
                   Generate Another
                 </Button>
               </div>
@@ -172,7 +178,7 @@ export function QuizGenerator({ noteId }: QuizGeneratorProps) {
               </div>
               <Button
                 variant="outline"
-                className="mt-4"
+                className="mt-4 w-full sm:w-auto"
                 onClick={() => setActiveQuizId(null)}
               >
                 Try Again
