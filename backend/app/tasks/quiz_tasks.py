@@ -141,7 +141,13 @@ def _persist_questions(
     assigned from the list index so questions render in the order the model
     returned them.
     """
-    allowed = {"question_type", "question_text", "options", "correct_answer", "explanation"}
+    allowed = {
+        "question_type",
+        "question_text",
+        "options",
+        "correct_answer",
+        "explanation",
+    }
     for i, q in enumerate(questions):
         payload = {k: v for k, v in q.items() if k in allowed}
         db.add(QuizQuestion(quiz_id=quiz_id, order=i, **payload))

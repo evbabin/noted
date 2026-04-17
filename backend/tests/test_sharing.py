@@ -68,9 +68,7 @@ async def test_owner_invites_existing_user_and_member_gains_access(client: Async
         },
     )
     assert member_login.status_code == 200, member_login.text
-    member_headers = {
-        "Authorization": f"Bearer {member_login.json()['access_token']}"
-    }
+    member_headers = {"Authorization": f"Bearer {member_login.json()['access_token']}"}
 
     workspace = await client.get(
         f"/api/v1/workspaces/{workspace_id}",
@@ -124,8 +122,7 @@ async def test_inviting_unknown_email_creates_pending_invitation_applied_on_regi
     )
     assert members.status_code == 200, members.text
     member_roles = {
-        member["user"]["email"]: member["role"]
-        for member in members.json()
+        member["user"]["email"]: member["role"] for member in members.json()
     }
     assert member_roles["pending-member@example.com"] == "editor"
 
@@ -163,9 +160,7 @@ async def test_non_owner_cannot_invite_members(client: AsyncClient):
         },
     )
     assert editor_login.status_code == 200, editor_login.text
-    editor_headers = {
-        "Authorization": f"Bearer {editor_login.json()['access_token']}"
-    }
+    editor_headers = {"Authorization": f"Bearer {editor_login.json()['access_token']}"}
 
     invite_target = await client.post(
         f"/api/v1/workspaces/{workspace_id}/members",
@@ -216,7 +211,9 @@ async def test_owner_can_remove_member_and_member_loses_access(client: AsyncClie
         email="remove-member@example.com",
         display_name="Member",
     )
-    workspace_id = await _create_workspace(client, owner_headers, name="Removal Workspace")
+    workspace_id = await _create_workspace(
+        client, owner_headers, name="Removal Workspace"
+    )
 
     invite = await client.post(
         f"/api/v1/workspaces/{workspace_id}/members",
@@ -234,9 +231,7 @@ async def test_owner_can_remove_member_and_member_loses_access(client: AsyncClie
         },
     )
     assert member_login.status_code == 200, member_login.text
-    member_headers = {
-        "Authorization": f"Bearer {member_login.json()['access_token']}"
-    }
+    member_headers = {"Authorization": f"Bearer {member_login.json()['access_token']}"}
 
     remove = await client.delete(
         f"/api/v1/workspaces/{workspace_id}/members/{member_id}",

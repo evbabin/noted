@@ -32,6 +32,12 @@ class Quiz(Base, UUIDMixin, TimestampMixin):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     note = relationship("Note", back_populates="quizzes")
-    questions = relationship("QuizQuestion", back_populates="quiz", cascade="all, delete-orphan",
-                             order_by="QuizQuestion.order")
-    attempts = relationship("QuizAttempt", back_populates="quiz", cascade="all, delete-orphan")
+    questions = relationship(
+        "QuizQuestion",
+        back_populates="quiz",
+        cascade="all, delete-orphan",
+        order_by="QuizQuestion.order",
+    )
+    attempts = relationship(
+        "QuizAttempt", back_populates="quiz", cascade="all, delete-orphan"
+    )

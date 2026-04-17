@@ -33,7 +33,9 @@ async def create_workspace(
     return workspace
 
 
-async def get_user_workspaces(db: AsyncSession, user_id: uuid.UUID) -> Sequence[Workspace]:
+async def get_user_workspaces(
+    db: AsyncSession, user_id: uuid.UUID
+) -> Sequence[Workspace]:
     result = await db.execute(
         select(Workspace)
         .join(WorkspaceMember, Workspace.id == WorkspaceMember.workspace_id)
@@ -94,9 +96,9 @@ async def add_workspace_member(
             role=role,
         )
         db.add(member)
-    
+
     await db.flush()
-    
+
     result = await db.execute(
         select(WorkspaceMember)
         .options(selectinload(WorkspaceMember.user))
@@ -117,7 +119,7 @@ async def remove_workspace_member(
     member = result.scalar_one_or_none()
     if not member:
         raise NotFoundError("Workspace member not found")
-    
+
     if member.role == MemberRole.OWNER:
         owner_result = await db.execute(
             select(WorkspaceMember).where(

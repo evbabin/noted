@@ -18,7 +18,9 @@ def _response_headers(request: Request) -> dict[str, str]:
 
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(NotedException)
-    async def noted_exception_handler(request: Request, exc: NotedException) -> JSONResponse:
+    async def noted_exception_handler(
+        request: Request, exc: NotedException
+    ) -> JSONResponse:
         return JSONResponse(
             status_code=exc.status_code,
             content={"error": exc.__class__.__name__, "detail": exc.detail},

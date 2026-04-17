@@ -165,7 +165,10 @@ class OpenAIProvider:
                 max_tokens=4096,
                 messages=[
                     {"role": "system", "content": _QUIZ_SYSTEM_PROMPT},
-                    {"role": "user", "content": _build_user_prompt(content, num_questions)},
+                    {
+                        "role": "user",
+                        "content": _build_user_prompt(content, num_questions),
+                    },
                 ],
             )
         except Exception as exc:
@@ -228,7 +231,9 @@ class GeminiProvider:
 
         from google.genai import types as genai_types  # type: ignore[import-untyped]
 
-        prompt = f"{_QUIZ_SYSTEM_PROMPT}\n\n{_build_user_prompt(content, num_questions)}"
+        prompt = (
+            f"{_QUIZ_SYSTEM_PROMPT}\n\n{_build_user_prompt(content, num_questions)}"
+        )
 
         try:
             response = await self._client.aio.models.generate_content(
@@ -354,7 +359,9 @@ def get_ai_provider(settings: Settings | None = None) -> AIProvider:
     if provider == "groq":
         return GroqProvider(api_key=settings.GROQ_API_KEY, model=settings.AI_MODEL)
     if provider == "openrouter":
-        return OpenRouterProvider(api_key=settings.OPENROUTER_API_KEY, model=settings.AI_MODEL)
+        return OpenRouterProvider(
+            api_key=settings.OPENROUTER_API_KEY, model=settings.AI_MODEL
+        )
     if provider == "gemini":
         return GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.AI_MODEL)
     if provider == "mock":
@@ -369,4 +376,6 @@ async def generate_quiz_from_content(
 ) -> list[dict[str, Any]]:
     """Module-level convenience wrapper so callers can import a single function."""
     provider = get_ai_provider(settings)
-    return await provider.generate_quiz_from_content(content, num_questions=num_questions)
+    return await provider.generate_quiz_from_content(
+        content, num_questions=num_questions
+    )

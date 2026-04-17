@@ -6,7 +6,6 @@ import { authApi } from '../../api/auth';
 import { tokenStorage } from '../../api/client';
 import { useAuthStore } from '../../stores/authStore';
 import { Avatar } from '../ui/Avatar';
-import { Logo } from '../ui/Logo';
 
 interface TopBarProps {
   title?: string;

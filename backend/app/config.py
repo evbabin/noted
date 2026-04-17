@@ -34,12 +34,12 @@ class Settings(BaseSettings):
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
 
     # AI (provider-agnostic: supports openai, gemini, groq, openrouter, mock)
-    AI_PROVIDER: str = "openai"           # "openai" | "gemini" | "groq" | "openrouter" | "mock"
-    AI_MODEL: str = "gpt-4o-mini"         # Model name for the chosen provider
-    OPENAI_API_KEY: str = ""              # Required if AI_PROVIDER=openai
-    GEMINI_API_KEY: str = ""              # Required if AI_PROVIDER=gemini
-    GROQ_API_KEY: str = ""                # Required if AI_PROVIDER=groq
-    OPENROUTER_API_KEY: str = ""          # Required if AI_PROVIDER=openrouter
+    AI_PROVIDER: str = "openai"  # "openai" | "gemini" | "groq" | "openrouter" | "mock"
+    AI_MODEL: str = "gpt-4o-mini"  # Model name for the chosen provider
+    OPENAI_API_KEY: str = ""  # Required if AI_PROVIDER=openai
+    GEMINI_API_KEY: str = ""  # Required if AI_PROVIDER=gemini
+    GROQ_API_KEY: str = ""  # Required if AI_PROVIDER=groq
+    OPENROUTER_API_KEY: str = ""  # Required if AI_PROVIDER=openrouter
 
     # Rate Limiting
     RATE_LIMIT_DEFAULT: str = "60/minute"

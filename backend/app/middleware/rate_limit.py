@@ -53,7 +53,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     (AI) are applied as route dependencies via `rate_limit_dependency`.
     """
 
-    def __init__(self, app, rate: str | None = None, exclude_paths: tuple[str, ...] = ("/health",)):
+    def __init__(
+        self,
+        app,
+        rate: str | None = None,
+        exclude_paths: tuple[str, ...] = ("/health",),
+    ):
         super().__init__(app)
         settings = get_settings()
         self.limit, self.window = parse_rate(rate or settings.RATE_LIMIT_DEFAULT)

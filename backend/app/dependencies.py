@@ -17,7 +17,9 @@ from app.services import auth_service
 
 settings = get_settings()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_PREFIX}/auth/login", auto_error=False
+)
 
 
 async def get_db() -> AsyncIterator[AsyncSession]:
@@ -90,8 +92,11 @@ def require_workspace_role(*allowed_roles: MemberRole):
 def require_min_role(min_role: MemberRole):
     """Convenience wrapper: allow `min_role` and any role above it in the hierarchy."""
     threshold = _ROLE_RANK[min_role]
-    allowed: Iterable[MemberRole] = [r for r, rank in _ROLE_RANK.items() if rank >= threshold]
+    allowed: Iterable[MemberRole] = [
+        r for r, rank in _ROLE_RANK.items() if rank >= threshold
+    ]
     return require_workspace_role(*allowed)
+
 
 def require_notebook_role(*allowed_roles: MemberRole):
     """Dependency factory enforcing membership + role on notebook-scoped endpoints."""
@@ -105,7 +110,7 @@ def require_notebook_role(*allowed_roles: MemberRole):
         notebook = await db.get(Notebook, notebook_id)
         if not notebook:
             raise NotFoundError("Notebook not found")
-            
+
         result = await db.execute(
             select(WorkspaceMember).where(
                 WorkspaceMember.workspace_id == notebook.workspace_id,
@@ -121,9 +126,12 @@ def require_notebook_role(*allowed_roles: MemberRole):
 
     return checker
 
+
 def require_min_notebook_role(min_role: MemberRole):
     threshold = _ROLE_RANK[min_role]
-    allowed: Iterable[MemberRole] = [r for r, rank in _ROLE_RANK.items() if rank >= threshold]
+    allowed: Iterable[MemberRole] = [
+        r for r, rank in _ROLE_RANK.items() if rank >= threshold
+    ]
     return require_notebook_role(*allowed)
 
 
@@ -165,5 +173,7 @@ def require_note_role(*allowed_roles: MemberRole):
 
 def require_min_note_role(min_role: MemberRole):
     threshold = _ROLE_RANK[min_role]
-    allowed: Iterable[MemberRole] = [r for r, rank in _ROLE_RANK.items() if rank >= threshold]
+    allowed: Iterable[MemberRole] = [
+        r for r, rank in _ROLE_RANK.items() if rank >= threshold
+    ]
     return require_note_role(*allowed)

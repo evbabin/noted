@@ -3,7 +3,12 @@ import uuid
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_current_user, get_db, require_min_role, require_workspace_role
+from app.dependencies import (
+    get_current_user,
+    get_db,
+    require_min_role,
+    require_workspace_role,
+)
 from app.models.user import User
 from app.models.workspace_member import MemberRole
 from app.schemas.workspace import (

@@ -3,17 +3,22 @@ from typing import Optional
 from uuid import UUID
 from datetime import datetime
 
+
 class NotebookBase(BaseModel):
     title: str
+
 
 class NotebookCreate(NotebookBase):
     pass
 
+
 class NotebookUpdate(BaseModel):
     title: Optional[str] = None
 
+
 class NotebookReorder(BaseModel):
     ordered_ids: list[UUID]
+
 
 class NotebookResponse(NotebookBase):
     id: UUID

@@ -63,7 +63,7 @@ export function NotePage() {
       setTitleStatus("idle");
       pendingTitleRef.current = {};
     }
-  }, [note?.id]);
+  }, [note?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Title save (REST, debounced) ─────────────────────────────────────────
 

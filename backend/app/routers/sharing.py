@@ -5,7 +5,12 @@ import uuid
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_current_user, get_db, require_min_role, require_workspace_role
+from app.dependencies import (
+    get_current_user,
+    get_db,
+    require_min_role,
+    require_workspace_role,
+)
 from app.models.user import User
 from app.models.workspace_member import MemberRole
 from app.schemas.workspace import (
@@ -58,7 +63,9 @@ async def list_workspace_members(
     return await sharing_service.list_workspace_members(db, workspace_id)
 
 
-@router.patch("/{workspace_id}/members/{user_id}", response_model=WorkspaceMemberResponse)
+@router.patch(
+    "/{workspace_id}/members/{user_id}", response_model=WorkspaceMemberResponse
+)
 async def update_workspace_member_role(
     workspace_id: uuid.UUID,
     user_id: uuid.UUID,
@@ -74,7 +81,9 @@ async def update_workspace_member_role(
     )
 
 
-@router.delete("/{workspace_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{workspace_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def remove_workspace_member(
     workspace_id: uuid.UUID,
     user_id: uuid.UUID,

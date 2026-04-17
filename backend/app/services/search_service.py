@@ -47,7 +47,9 @@ _SEARCH_SQL = text(
 
 
 def _cache_key(workspace_id: uuid.UUID, query: str, limit: int, offset: int) -> str:
-    digest = hashlib.sha256(f"{query}|{limit}|{offset}".encode("utf-8")).hexdigest()[:16]
+    digest = hashlib.sha256(f"{query}|{limit}|{offset}".encode("utf-8")).hexdigest()[
+        :16
+    ]
     return f"{SEARCH_CACHE_PREFIX}{workspace_id}:{digest}"
 
 

@@ -67,9 +67,7 @@ async def create_quiz(
 async def get_quiz(db: AsyncSession, quiz_id: uuid.UUID) -> Quiz:
     """Load a quiz with its questions ordered by ``order``."""
     result = await db.execute(
-        select(Quiz)
-        .options(selectinload(Quiz.questions))
-        .where(Quiz.id == quiz_id)
+        select(Quiz).options(selectinload(Quiz.questions)).where(Quiz.id == quiz_id)
     )
     quiz = result.scalar_one_or_none()
     if quiz is None:

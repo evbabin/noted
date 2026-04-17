@@ -174,7 +174,9 @@ async def test_quiz_status_transitions(
     release = asyncio.Event()
 
     class FakeProvider:
-        async def generate_quiz_from_content(self, content: str, num_questions: int = 10):
+        async def generate_quiz_from_content(
+            self, content: str, num_questions: int = 10
+        ):
             assert content == note_text
             assert num_questions == 3
             started.set()
@@ -237,7 +239,9 @@ async def test_quiz_status_transitions(
     assert len(quiz_response.json()["questions"]) == 3
 
 
-async def test_submit_quiz_attempt_calculates_score(client: AsyncClient, db_session: AsyncSession):
+async def test_submit_quiz_attempt_calculates_score(
+    client: AsyncClient, db_session: AsyncSession
+):
     headers, note_id, _note_text = await _create_authenticated_note(
         client,
         email="quiz-attempt@example.com",
@@ -310,7 +314,9 @@ async def test_submit_quiz_attempt_calculates_score(client: AsyncClient, db_sess
         "correct": False,
     }
 
-    list_response = await client.get(f"/api/v1/quizzes/{quiz.id}/attempts", headers=headers)
+    list_response = await client.get(
+        f"/api/v1/quizzes/{quiz.id}/attempts", headers=headers
+    )
     assert list_response.status_code == 200, list_response.text
     attempts = list_response.json()
     assert len(attempts) == 1

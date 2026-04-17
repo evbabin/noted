@@ -10,8 +10,15 @@ from alembic import context
 # Import all models so Alembic can detect them
 from app.models.base import Base  # noqa: F401
 from app.models import (  # noqa: F401
-    user, workspace, workspace_member, notebook, note,
-    note_version, quiz, quiz_question, quiz_attempt
+    user,
+    workspace,
+    workspace_member,
+    notebook,
+    note,
+    note_version,
+    quiz,
+    quiz_question,
+    quiz_attempt,
 )
 
 config = context.config

@@ -20,8 +20,12 @@ from app.services import auth_service
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)) -> TokenResponse:
+@router.post(
+    "/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED
+)
+async def register(
+    data: RegisterRequest, db: AsyncSession = Depends(get_db)
+) -> TokenResponse:
     user = await auth_service.register_user(db, data)
     access, refresh = await auth_service.issue_token_pair(user)
     return TokenResponse(
@@ -32,7 +36,9 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)) ->
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)) -> TokenResponse:
+async def login(
+    data: LoginRequest, db: AsyncSession = Depends(get_db)
+) -> TokenResponse:
     user = await auth_service.authenticate_user(db, data.email, data.password)
     access, refresh = await auth_service.issue_token_pair(user)
     return TokenResponse(
@@ -43,8 +49,12 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)) -> Token
 
 
 @router.post("/refresh", response_model=TokenPair)
-async def refresh(data: RefreshRequest, db: AsyncSession = Depends(get_db)) -> TokenPair:
-    _, access, refresh_token = await auth_service.rotate_refresh_token(data.refresh_token, db)
+async def refresh(
+    data: RefreshRequest, db: AsyncSession = Depends(get_db)
+) -> TokenPair:
+    _, access, refresh_token = await auth_service.rotate_refresh_token(
+        data.refresh_token, db
+    )
     return TokenPair(access_token=access, refresh_token=refresh_token)
 
 

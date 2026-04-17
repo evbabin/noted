@@ -31,7 +31,7 @@ export function AuthCallback() {
       .catch(() => {
         navigate('/login?error=google_auth_failed', { replace: true });
       });
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-zinc-950">

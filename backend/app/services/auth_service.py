@@ -34,7 +34,9 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def _encode(payload: dict) -> str:
-    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(
+        payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
+    )
 
 
 def create_access_token(user_id: uuid.UUID, email: str) -> str:
@@ -44,7 +46,9 @@ def create_access_token(user_id: uuid.UUID, email: str) -> str:
         "email": email,
         "type": "access",
         "iat": int(now.timestamp()),
-        "exp": int((now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)).timestamp()),
+        "exp": int(
+            (now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)).timestamp()
+        ),
         "jti": secrets.token_urlsafe(16),
     }
     return _encode(payload)
@@ -57,7 +61,9 @@ def create_refresh_token(user_id: uuid.UUID) -> tuple[str, str]:
         "sub": str(user_id),
         "type": "refresh",
         "iat": int(now.timestamp()),
-        "exp": int((now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)).timestamp()),
+        "exp": int(
+            (now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)).timestamp()
+        ),
         "jti": jti,
     }
     return _encode(payload), jti
@@ -65,7 +71,9 @@ def create_refresh_token(user_id: uuid.UUID) -> tuple[str, str]:
 
 def decode_token(token: str) -> dict:
     try:
-        return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        return jwt.decode(
+            token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+        )
     except jwt.ExpiredSignatureError as e:
         raise AuthenticationError("Token has expired") from e
     except jwt.InvalidTokenError as e:
