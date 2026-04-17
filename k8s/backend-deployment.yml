@@ -5,6 +5,13 @@ metadata:
   namespace: noted
 spec:
   replicas: 2
+  # maxUnavailable: 0 ensures capacity never drops below 2 during a rollout;
+  # maxSurge: 1 allows one extra pod to come up before an old one is terminated.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: backend
@@ -13,6 +20,10 @@ spec:
       labels:
         app: backend
     spec:
+      # Allow open WebSocket connections to drain before the pod is killed.
+      # The ingress proxy-read-timeout is 3600s, but in practice most connections
+      # will close within seconds of SIGTERM once the client sees the server going away.
+      terminationGracePeriodSeconds: 60
       containers:
         - name: backend
           image: ghcr.io/your-user/noted-backend:latest
@@ -30,12 +41,22 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
+          # readinessProbe: gates traffic — pod removed from Service endpoints if this fails.
           readinessProbe:
             httpGet:
               path: /health
               port: 8000
             initialDelaySeconds: 10
             periodSeconds: 10
+          # livenessProbe: restarts the pod if it becomes hung/deadlocked.
+          # Higher failureThreshold so transient slowness under load doesn't trigger a restart.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
 ---
 apiVersion: v1
 kind: Service

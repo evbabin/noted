@@ -1,0 +1,17 @@
+# Dependencies — reinstalled inside the image via pnpm install
+node_modules/
+
+# Build output — rebuilt inside the image via pnpm build
+dist/
+
+# Local env files — VITE_* vars are injected as Docker build args, not .env files.
+# Excluding these ensures the build args are the sole source of truth and prevents
+# accidentally baking local credentials into the image.
+.env
+.env.*
+!.env.example
+
+# Editor and OS noise
+.git/
+.gitignore
+*.log

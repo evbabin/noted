@@ -192,6 +192,17 @@ class GroqProvider(OpenAIProvider):
         )
 
 
+class OpenRouterProvider(OpenAIProvider):
+    """OpenRouter exposes an OpenAI-compatible endpoint; reuse the OpenAI SDK."""
+
+    def __init__(self, api_key: str, model: str):
+        super().__init__(
+            api_key=api_key,
+            model=model,
+            base_url="https://openrouter.ai/api/v1",
+        )
+
+
 class GeminiProvider:
     """Google Gemini via the `google-genai` SDK.
 
@@ -342,6 +353,8 @@ def get_ai_provider(settings: Settings | None = None) -> AIProvider:
         return OpenAIProvider(api_key=settings.OPENAI_API_KEY, model=settings.AI_MODEL)
     if provider == "groq":
         return GroqProvider(api_key=settings.GROQ_API_KEY, model=settings.AI_MODEL)
+    if provider == "openrouter":
+        return OpenRouterProvider(api_key=settings.OPENROUTER_API_KEY, model=settings.AI_MODEL)
     if provider == "gemini":
         return GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.AI_MODEL)
     if provider == "mock":

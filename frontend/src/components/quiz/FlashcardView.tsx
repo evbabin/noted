@@ -36,25 +36,25 @@ export function FlashcardView({
   return (
     <div className="space-y-4">
       <div
-        className={`w-full min-h-[200px] border rounded-lg bg-white shadow-sm flex flex-col items-center justify-center p-6 text-center transition-all duration-300 relative ${
+        className={`relative flex min-h-[200px] w-full flex-col items-center justify-center rounded-lg border bg-white p-6 text-center shadow-sm transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-900 ${
           !showResults ? 'cursor-pointer hover:shadow-md' : ''
         }`}
         onClick={handleFlip}
       >
         {!isFlipped ? (
           <div className="space-y-4 w-full">
-            <span className="block text-sm text-gray-500 uppercase tracking-wider font-semibold mb-2">Front</span>
-            <p className="text-lg font-medium text-gray-900">{question}</p>
+            <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">Front</span>
+            <p className="text-lg font-medium text-gray-900 dark:text-zinc-100">{question}</p>
             {!showResults && (
-              <div className="absolute bottom-4 right-4 text-gray-400">
+              <div className="absolute bottom-4 right-4 text-gray-400 dark:text-zinc-500">
                 <RefreshCw className="h-5 w-5" />
               </div>
             )}
           </div>
         ) : (
           <div className="space-y-4 w-full">
-            <span className="block text-sm text-gray-500 uppercase tracking-wider font-semibold mb-2">Back</span>
-            <p className="text-lg text-gray-900">{answer}</p>
+            <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">Back</span>
+            <p className="text-lg text-gray-900 dark:text-zinc-100">{answer}</p>
           </div>
         )}
       </div>
@@ -82,7 +82,7 @@ export function FlashcardView({
           <span
             className={`font-medium ${
               userAnswer == null
-                ? "text-gray-600"
+                ? "text-gray-600 dark:text-zinc-400"
                 : resultCorrect
                   ? "text-green-600"
                   : "text-red-600"

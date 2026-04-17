@@ -198,11 +198,11 @@ export function MemberManager({ workspaceId }: MemberManagerProps) {
   }
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+    <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Members</h3>
-          <p className="text-sm text-gray-600">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100">Members</h3>
+          <p className="text-sm text-gray-600 dark:text-zinc-300">
             Invite collaborators, update roles, and review who can access this
             workspace.
           </p>
@@ -217,7 +217,7 @@ export function MemberManager({ workspaceId }: MemberManagerProps) {
           {canManageMembers ? (
             <form
               onSubmit={handleInviteSubmit}
-              className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-4"
+              className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-zinc-800 dark:bg-zinc-950"
             >
               <div className="flex flex-col gap-3 lg:flex-row">
                 <Input
@@ -237,8 +237,8 @@ export function MemberManager({ workspaceId }: MemberManagerProps) {
                   }
                   aria-label="Invite role"
                   disabled={inviteMutation.isPending}
-                  className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
+                    className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                  >
                   {MEMBER_ROLE_OPTIONS.map((role) => (
                     <option key={role} value={role}>
                       {ROLE_LABELS[role]}
@@ -255,13 +255,13 @@ export function MemberManager({ workspaceId }: MemberManagerProps) {
                   {inviteMutation.isPending ? "Sending…" : "Invite member"}
                 </Button>
               </div>
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-2 text-xs text-gray-500 dark:text-zinc-400">
                 Existing users are added immediately. Unknown emails stay
                 pending until signup.
               </p>
             </form>
           ) : (
-            <p className="mt-5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+            <p className="mt-5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
               Only workspace owners can invite members or change roles.
             </p>
           )}
@@ -280,7 +280,7 @@ export function MemberManager({ workspaceId }: MemberManagerProps) {
         {isError && (
           <div
             role="alert"
-            className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300"
           >
             {extractErrorDetail(error) ?? "Failed to load workspace members."}{" "}
             <button
@@ -302,7 +302,7 @@ export function MemberManager({ workspaceId }: MemberManagerProps) {
         )}
 
         {!isLoading && !isError && sortedMembers.length > 0 && (
-          <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+          <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200 dark:divide-zinc-800 dark:border-zinc-800">
             {sortedMembers.map((member) => {
               const isCurrentUser = member.user_id === currentUser?.id;
               const isUpdatingRole = roleUpdateUserId === member.user_id;
@@ -316,15 +316,15 @@ export function MemberManager({ workspaceId }: MemberManagerProps) {
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate font-medium text-gray-900">
+                      <p className="truncate font-medium text-gray-900 dark:text-zinc-100">
                         {getMemberLabel(member)}
                       </p>
                       {isCurrentUser && <Badge variant="outline">You</Badge>}
                     </div>
-                    <p className="truncate text-sm text-gray-600">
+                    <p className="truncate text-sm text-gray-600 dark:text-zinc-300">
                       {member.user?.email ?? member.user_id}
                     </p>
-                    <p className="mt-1 text-xs text-gray-400">
+                    <p className="mt-1 text-xs text-gray-400 dark:text-zinc-500">
                       Joined {new Date(member.created_at).toLocaleDateString()}
                     </p>
                   </div>
@@ -339,7 +339,7 @@ export function MemberManager({ workspaceId }: MemberManagerProps) {
                           }
                           aria-label={`Change role for ${getMemberLabel(member)}`}
                           disabled={isUpdatingRole || isRemovingMember}
-                          className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                         >
                           {MEMBER_ROLE_OPTIONS.map((role) => (
                             <option key={role} value={role}>

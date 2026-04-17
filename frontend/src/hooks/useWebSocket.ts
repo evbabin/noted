@@ -32,6 +32,7 @@ interface UseWebSocketResult {
   lastError: string | null;
   reconnect: () => void;
   disconnect: () => void;
+  setPreDisconnect: (fn: (() => void) | null) => void;
 }
 
 function parseServerMessage(
@@ -76,6 +77,14 @@ export function useWebSocket(noteId: string | undefined): UseWebSocketResult {
   const pingTimerRef = useRef<number | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const shouldReconnectRef = useRef(true);
+  // Called at the top of disconnect() so callers can flush in-flight data
+  // before the socket reference is cleared. React unmounts hooks in creation
+  // order, so a caller's own cleanup would otherwise run after the socket closes.
+  const preDisconnectRef = useRef<(() => void) | null>(null);
+
+  const setPreDisconnect = useCallback((fn: (() => void) | null) => {
+    preDisconnectRef.current = fn;
+  }, []);
 
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>("idle");
@@ -136,6 +145,7 @@ export function useWebSocket(noteId: string | undefined): UseWebSocketResult {
   }, []);
 
   const disconnect = useCallback(() => {
+    preDisconnectRef.current?.();
     shouldReconnectRef.current = false;
     cleanupReconnectTimer();
     cleanupPingTimer();
@@ -402,8 +412,9 @@ export function useWebSocket(noteId: string | undefined): UseWebSocketResult {
       lastError,
       reconnect,
       disconnect,
+      setPreDisconnect,
     }),
-    [connectionStatus, disconnect, lastError, reconnect, send],
+    [connectionStatus, disconnect, lastError, reconnect, send, setPreDisconnect],
   );
 }
 

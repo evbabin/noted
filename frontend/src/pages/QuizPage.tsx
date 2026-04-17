@@ -1,6 +1,7 @@
-import { ArrowLeft } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { BrainCircuit } from 'lucide-react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 
+import { AppShell } from '../components/layout/AppShell';
 import { QuizGenerator } from '../components/quiz/QuizGenerator';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -8,41 +9,55 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingState } from '../components/ui/LoadingState';
 import { useNote } from '../hooks/useNote';
 import { useQuizzes } from '../hooks/useQuiz';
+import { useWorkspace } from '../hooks/useWorkspace';
 
 export function QuizPage() {
   const { noteId } = useParams<{ noteId: string }>();
-  const navigate = useNavigate();
+  const { state } = useLocation();
+  const workspaceId: string | undefined = state?.workspaceId;
 
-  // Fetch the note so we can show its title in the header and link back to it.
-  // This route (/notes/:noteId/quizzes) doesn't include workspaceId, so we
-  // can't build the full /workspaces/:wid/notes/:nid path; navigate(-1) handles
-  // the back button instead.
   const { data: note } = useNote(noteId);
+  const { data: workspace } = useWorkspace(workspaceId);
   const { data: quizzes, isLoading, isError, refetch } = useQuizzes(noteId ?? '');
 
-  return (
-    <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:space-y-8 sm:px-6 sm:py-10">
+  const noteUrl = workspaceId && noteId
+    ? `/workspaces/${workspaceId}/notes/${noteId}`
+    : '/dashboard';
+
+  const content = (
+    <div className="mx-auto max-w-4xl space-y-8 px-4 py-8 sm:px-6 sm:py-12">
       <div>
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="mb-3 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+        <Link
+          to={noteUrl}
+          className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-gray-500 transition hover:text-brand-600 dark:text-zinc-400 dark:hover:text-brand-300"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Back to note
-        </button>
-        <h1 className="text-2xl font-bold text-gray-900">
-          {note ? `Quizzes — ${note.title}` : 'Quizzes'}
-        </h1>
-        <p className="mt-2 text-gray-600">
-          Generate a quiz based on your note&apos;s contents to test your knowledge.
+          ← Back to note
+        </Link>
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-gradient text-white shadow-sm">
+            <BrainCircuit className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-600 dark:text-brand-300">
+              AI quizzes
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-zinc-100 sm:text-3xl">
+              {note ? note.title : 'Quizzes'}
+            </h1>
+          </div>
+        </div>
+        <p className="mt-3 text-sm text-gray-600 dark:text-zinc-300">
+          Generate a quiz from this note&apos;s content to test your recall. Each quiz mixes
+          multiple choice, fill-in-the-blank, and flashcards.
         </p>
       </div>
 
       <QuizGenerator noteId={noteId ?? ''} />
 
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Past Quizzes</h3>
+        <h3 className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-zinc-400">
+          Past quizzes
+        </h3>
 
         {isLoading ? (
           <LoadingState
@@ -50,12 +65,15 @@ export function QuizPage() {
             message="Fetching previous quiz runs for this note."
           />
         ) : isError ? (
-          <div className="text-sm text-red-600 border border-red-200 bg-red-50 rounded-lg p-4">
-            Failed to load quizzes.{` `}
+          <div
+            role="alert"
+            className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-950/40 dark:text-red-300"
+          >
+            Failed to load quizzes.{' '}
             <button
               type="button"
               onClick={() => refetch()}
-              className="underline hover:no-underline"
+              className="font-medium underline hover:no-underline"
             >
               Retry
             </button>
@@ -65,37 +83,42 @@ export function QuizPage() {
             {quizzes.map((quiz) => (
               <div
                 key={quiz.id}
-                className="flex flex-col gap-4 rounded-lg border bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-brand-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-brand-500/40 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
-                  <div className="flex items-center gap-3">
-                    <h4 className="font-medium text-gray-900 truncate">{quiz.title}</h4>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h4 className="truncate font-semibold text-gray-900 dark:text-zinc-100">
+                      {quiz.title}
+                    </h4>
                     <Badge
                       variant={
                         quiz.status === 'completed'
                           ? 'success'
                           : quiz.status === 'failed'
-                          ? 'destructive'
-                          : 'secondary'
+                            ? 'destructive'
+                            : 'secondary'
                       }
                     >
                       {quiz.status}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {new Date(quiz.created_at).toLocaleDateString()}
+                  <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
+                    Created {new Date(quiz.created_at).toLocaleDateString()}
                   </p>
-                  {/* Show generation error details so the user knows what went wrong */}
                   {quiz.status === 'failed' && quiz.error_message && (
-                    <p className="text-xs text-red-500 mt-1 truncate">
+                    <p className="mt-1 truncate text-xs text-red-500 dark:text-red-300">
                       {quiz.error_message}
                     </p>
                   )}
                 </div>
                 {quiz.status === 'completed' && (
-                  <Link to={`/quizzes/${quiz.id}`} className="w-full flex-shrink-0 sm:ml-4 sm:w-auto">
+                  <Link
+                    to={`/quizzes/${quiz.id}`}
+                    state={{ workspaceId, noteId }}
+                    className="w-full flex-shrink-0 sm:ml-4 sm:w-auto"
+                  >
                     <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                      Take Quiz
+                      Take quiz
                     </Button>
                   </Link>
                 )}
@@ -104,13 +127,24 @@ export function QuizPage() {
           </div>
         ) : (
           <EmptyState
+            icon={<BrainCircuit className="h-6 w-6" />}
             title="No quizzes generated yet"
-            description="Generate your first quiz above to turn this note into a study session."
+            description="Generate your first quiz above to turn this note into an active recall session."
           />
         )}
       </div>
     </div>
   );
+
+  if (workspaceId) {
+    return (
+      <AppShell workspaceId={workspaceId} workspaceName={workspace?.name}>
+        {content}
+      </AppShell>
+    );
+  }
+
+  return <div className="min-h-screen bg-gray-50 dark:bg-zinc-950">{content}</div>;
 }
 
 export default QuizPage;

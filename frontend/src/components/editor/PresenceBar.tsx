@@ -21,7 +21,7 @@ export function PresenceBar() {
           compact
           title="No active collaborators"
           description="When someone joins this note, their presence will appear here."
-          className="border-gray-200 bg-gray-50"
+          className="border-gray-200 bg-gray-50 dark:border-zinc-800 dark:bg-zinc-950"
         />
       </div>
     );
@@ -30,15 +30,15 @@ export function PresenceBar() {
   return (
     <div
       data-testid="presence-bar"
-      className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2"
+      className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950"
     >
       <div>
-        <p className="text-sm font-medium text-gray-800">
+        <p className="text-sm font-medium text-gray-800 dark:text-zinc-200">
           {users.length === 1
             ? "1 collaborator in this note"
             : `${users.length} collaborators in this note`}
         </p>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-500 dark:text-zinc-400">
           Presence updates are live while collaborators stay connected.
         </p>
       </div>
@@ -50,7 +50,7 @@ export function PresenceBar() {
             data-testid="presence-user"
             data-user-id={user.user_id}
             data-user-name={user.display_name}
-            className="group flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2 py-1 shadow-sm"
+            className="group flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2 py-1 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
             title={user.display_name}
           >
             <Avatar
@@ -62,13 +62,13 @@ export function PresenceBar() {
               borderColor={user.color}
             />
             <div className="min-w-0">
-              <p className="max-w-[10rem] truncate text-xs font-medium text-gray-800">
-                {user.display_name}
-              </p>
-              <p className="text-[11px] text-gray-500">Active now</p>
+                <p className="max-w-[10rem] truncate text-xs font-medium text-gray-800 dark:text-zinc-200">
+                  {user.display_name}
+                </p>
+                <p className="text-[11px] text-gray-500 dark:text-zinc-400">Active now</p>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
     </div>
   );

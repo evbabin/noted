@@ -5,6 +5,14 @@ metadata:
   namespace: noted
 spec:
   replicas: 1
+  # maxUnavailable: 0 prevents a new worker from starting before the old one has finished
+  # its in-flight job and exited cleanly. ARQ workers catch SIGTERM and finish the current
+  # task before shutting down, so a graceful overlap is preferred over hard interruption.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: worker
@@ -13,6 +21,9 @@ spec:
       labels:
         app: worker
     spec:
+      # AI quiz generation tasks can run for 10–30 seconds. Give ARQ enough time to finish
+      # the current job after receiving SIGTERM before the pod is force-killed.
+      terminationGracePeriodSeconds: 120
       containers:
         - name: worker
           image: ghcr.io/your-user/noted-backend:latest
@@ -29,3 +40,5 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "400m"
+          # No HTTP readiness/liveness probes — ARQ workers expose no HTTP endpoint.
+          # k8s will restart the container automatically if the process exits non-zero.

@@ -13,40 +13,48 @@ export function QuizReview({ quiz, questions, attempt }: QuizReviewProps) {
     : null;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 pb-16">
+    <div className="mx-auto max-w-3xl space-y-8 pb-16">
       {attempt && (
         <div
-          className="bg-blue-50 border border-blue-100 rounded-lg p-8 shadow-sm text-center"
+          className="relative overflow-hidden rounded-2xl border border-brand-200 bg-brand-50 p-8 text-center shadow-sm dark:border-brand-500/30 dark:bg-brand-500/10"
           data-testid="quiz-score-summary"
         >
-          <h2 className="text-2xl font-bold text-blue-900 mb-6">Quiz Results</h2>
-          <div className="space-y-6">
-            <div className="flex flex-col items-center justify-center space-y-2">
-              <span className="text-6xl font-extrabold text-blue-600">{percentage}%</span>
-              <span className="text-blue-800 font-medium text-lg">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-brand-gradient opacity-20 blur-3xl"
+          />
+          <div className="relative">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-brand-700 dark:text-brand-200">
+              Quiz results
+            </h2>
+            <div className="mt-4 flex flex-col items-center justify-center space-y-2">
+              <span className="bg-brand-gradient bg-clip-text text-6xl font-extrabold tracking-tight text-transparent">
+                {percentage}%
+              </span>
+              <span className="text-base font-medium text-brand-900 dark:text-brand-100">
                 {attempt.correct_count} out of {attempt.total_questions} correct
               </span>
             </div>
-            <div className="w-full bg-blue-200 rounded-full h-3 max-w-md mx-auto">
-              <div 
-                className="bg-blue-600 h-3 rounded-full transition-all duration-500 ease-out" 
+            <div className="mx-auto mt-6 h-3 w-full max-w-md overflow-hidden rounded-full bg-white/70 dark:bg-brand-500/20">
+              <div
+                className="h-3 rounded-full bg-brand-gradient transition-all duration-500 ease-out"
                 style={{ width: `${percentage}%` }}
-              ></div>
+              />
             </div>
           </div>
         </div>
       )}
 
       {!attempt && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 shadow-sm">
-          <p className="text-gray-600 text-center font-medium">
-            Reviewing correct answers for: <span className="text-gray-900">{quiz.title}</span>
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-center font-medium text-gray-600 dark:text-zinc-300">
+            Reviewing correct answers for: <span className="text-gray-900 dark:text-zinc-100">{quiz.title}</span>
           </p>
         </div>
       )}
 
       <div className="space-y-6">
-        <h3 className="text-xl font-bold tracking-tight text-gray-900 px-1">Review Questions</h3>
+        <h3 className="px-1 text-xl font-bold tracking-tight text-gray-900 dark:text-zinc-100">Review Questions</h3>
         {questions.map((question: QuizQuestion, index: number) => {
           const attemptAnswer = attempt?.answers[question.id];
           const userAnswer = attemptAnswer?.answer;

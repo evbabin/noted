@@ -25,6 +25,7 @@ interface NoteEditorProps {
   initialContent: unknown;
   editable?: boolean;
   placeholder?: string;
+  onContentChange?: (content: unknown) => void;
 }
 
 const LOCAL_UPDATE_DEBOUNCE_MS = 300;
@@ -60,6 +61,7 @@ export function NoteEditor({
   noteId,
   initialContent,
   editable = true,
+  onContentChange,
 }: NoteEditorProps) {
   const editorContent = useEditorStore((state) => state.content);
   const editorStatus = useEditorStore((state) => state.connectionStatus);
@@ -71,6 +73,7 @@ export function NoteEditor({
     send,
     connectionStatus: websocketStatus,
     lastError,
+    setPreDisconnect,
   } = useWebSocket(noteId);
 
   const applyingExternalContentRef = useRef(false);
@@ -207,11 +210,11 @@ export function NoteEditor({
     content: effectiveContent ?? "",
     editable,
     editorProps: {
-      attributes: {
-        class:
-          "prose prose-sm sm:prose-base max-w-none min-h-[50vh] focus:outline-none",
+        attributes: {
+          class:
+          "prose prose-sm sm:prose-base dark:prose-invert max-w-none min-h-[50vh] focus:outline-none",
+        },
       },
-    },
     onCreate: ({ editor: editorInstance }) => {
       // Older notes may predate collaboration ids. We normalize immediately so
       // every subsequent edit can be translated into backend-friendly block
@@ -262,6 +265,7 @@ export function NoteEditor({
 
       setLocalContent(normalizedDocument);
       scheduleSend(normalizedDocument);
+      onContentChange?.(normalizedDocument);
     },
     onSelectionUpdate: ({ editor: editorInstance }) => {
       // Cursor updates are lightweight and do not affect persistence, but we
@@ -272,12 +276,24 @@ export function NoteEditor({
     },
   });
 
+  // Register flush callbacks to run inside disconnect() before the socket
+  // reference is cleared. React runs hook cleanups in creation order, so the
+  // useWebSocket disconnect fires before this component's own cleanup — without
+  // this the final send would always see wsRef.current === null and be dropped.
+  useEffect(() => {
+    setPreDisconnect(() => {
+      flushQueuedUpdate();
+      flushCursorUpdate();
+    });
+    return () => {
+      setPreDisconnect(null);
+    };
+  }, [setPreDisconnect, flushQueuedUpdate, flushCursorUpdate]);
+
   useEffect(() => {
     return () => {
-      // Flush pending collaboration payloads before the editor unmounts. The
-      // backend already persists staged websocket changes on disconnect, but we
-      // still want the final local edit/cursor state to be sent if the socket is
-      // currently open.
+      // Secondary flush as a safety net (pre-disconnect callback above handles
+      // the normal path; this catches cases where the socket was already gone).
       flushQueuedUpdate();
       flushCursorUpdate();
 
@@ -363,13 +379,12 @@ export function NoteEditor({
       </div>
 
       <div
-        className="relative"
+        className="relative mt-3 rounded-xl border border-gray-200 bg-white px-4 py-4 shadow-sm transition-colors focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100 dark:border-zinc-800 dark:bg-zinc-900 dark:focus-within:border-blue-500 dark:focus-within:ring-blue-500/20"
         data-testid="note-editor-surface"
         data-note-id={noteId}
       >
         <EditorContent
           editor={editor}
-          className="mt-3"
           data-testid="note-editor-content"
         />
         <CursorOverlay editor={editor} />
@@ -382,12 +397,12 @@ function Toolbar({ editor }: { editor: Editor }) {
   const buttonClass = (active: boolean) =>
     `rounded px-2 py-1 text-xs font-medium transition ${
       active
-        ? "bg-gray-900 text-white"
-        : "bg-white text-gray-700 hover:bg-gray-100"
+        ? "bg-gray-900 text-white dark:bg-blue-500 dark:text-zinc-950"
+        : "bg-white text-gray-700 hover:bg-gray-100 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
     }`;
 
   return (
-    <div className="flex flex-wrap gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5">
+    <div className="flex flex-wrap gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5 dark:border-zinc-800 dark:bg-zinc-950">
       <button
         type="button"
         onClick={() => editor.chain().focus().toggleBold().run()}
@@ -481,10 +496,10 @@ function ConnectionBadge({
 
   const colorClass =
     lastError || websocketStatus === "error"
-      ? "text-red-600"
+      ? "text-red-600 dark:text-red-300"
       : websocketStatus === "open"
-        ? "text-emerald-600"
-        : "text-amber-600";
+        ? "text-emerald-600 dark:text-emerald-400"
+        : "text-amber-600 dark:text-amber-400";
 
   return (
     <span

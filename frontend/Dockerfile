@@ -1,4 +1,4 @@
-# Build stage
+# ── Stage 1: build ──────────────────────────────────────────────────────────
 FROM node:20-alpine AS build
 
 WORKDIR /app
@@ -8,10 +8,23 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
+
+# VITE_* vars are baked into the JS bundle at build time (not runtime).
+# Accept them as build args so docker-compose.prod.yml can inject them without
+# requiring a .env file inside the image.
+ARG VITE_API_BASE_URL=/api/v1
+ARG VITE_WS_URL
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_WS_URL=$VITE_WS_URL
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 RUN pnpm build
 
-# Serve stage
-FROM nginx:alpine
+# ── Stage 2: serve ───────────────────────────────────────────────────────────
+# Pin to a specific minor version so builds are reproducible and a future
+# nginx major release doesn't silently change behaviour.
+FROM nginx:1.27-alpine
 
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf

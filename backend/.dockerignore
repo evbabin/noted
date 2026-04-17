@@ -1,0 +1,31 @@
+# Virtual environments — never copy these; packages are installed inside the image
+venv/
+.venv/
+
+# Python bytecode — not needed and bloats layers
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# Local secrets — env vars are injected at runtime via env_file, never baked in
+.env
+.env.*
+!.env.example
+
+# Test suite — not needed in the production image
+tests/
+
+# Dev/CI artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# Editor and OS noise
+.git/
+.gitignore
+*.log

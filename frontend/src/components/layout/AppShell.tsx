@@ -41,7 +41,7 @@ export function AppShell({
   }, [sidebarOpen]);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 dark:bg-zinc-950">
       <Sidebar
         workspaceId={workspaceId}
         workspaceName={workspaceName}
@@ -54,7 +54,9 @@ export function AppShell({
           onOpenSearch={onOpenSearch}
           onToggleSidebar={() => setSidebarOpen((current) => !current)}
         />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-gray-50 text-gray-900 transition-colors dark:bg-zinc-950 dark:text-zinc-100">
+          {children}
+        </main>
       </div>
     </div>
   );

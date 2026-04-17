@@ -1,53 +1,94 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-noted}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:-noted}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-noted}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # One-shot migration runner — backend and worker wait for this to exit 0
+  # before starting. Re-run manually after deploying new backend images if
+  # you need to apply new migrations: `docker compose -f docker-compose.prod.yml run --rm migrate`
+  migrate:
+    build: ./backend
+    env_file: ./backend/.env
+    command: alembic upgrade head
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
   backend:
     build: ./backend
     env_file: ./backend/.env
+    restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
-    deploy:
-      replicas: 2
+    healthcheck:
+      # python:3.12-slim has no curl/wget; stdlib urllib is the safest option.
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   worker:
     build: ./backend
     env_file: ./backend/.env
+    command: arq app.tasks.worker.WorkerSettings
+    restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
-    command: arq app.tasks.worker.WorkerSettings
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        # /api/v1 is a relative path — nginx proxies it to the backend
+        # container, so no hostname is needed in the bundle.
+        VITE_API_BASE_URL: /api/v1
+        # WS URL must be absolute. Set VITE_WS_URL in your root .env to
+        # e.g. wss://yourdomain.com/api/v1/ws before building.
+        VITE_WS_URL: ${VITE_WS_URL:-ws://localhost/api/v1/ws}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
     ports:
       - "80:80"
+    restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
 volumes:
   pgdata:
+  # Persist Redis data across restarts so ARQ job queue entries and
+  # refresh tokens (short-TTL, but still live across container bounces) survive.
+  redisdata:

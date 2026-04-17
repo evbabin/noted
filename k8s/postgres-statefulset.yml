@@ -1,1 +1,85 @@
-# TODO: PostgreSQL StatefulSet + Service manifest
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: noted
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: noted
+            - name: POSTGRES_DB
+              value: noted
+            # Password sourced from the secret so it stays consistent with DATABASE_URL.
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: noted-secrets
+                  key: POSTGRES_PASSWORD
+            # PGDATA must point to a subdirectory of the volume mount, not the mount root.
+            # Many storage provisioners leave a lost+found directory at the volume root;
+            # postgres refuses to initialize a non-empty data directory, causing a crash loop.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "noted"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          # Liveness probe restarts the pod if postgres stops accepting connections
+          # (e.g., hit max_connections, OOM-killed subprocess, or corrupted state).
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "noted"]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
+  # PVC per pod — StatefulSet guarantees stable storage identity across restarts.
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+---
+# Headless service required by StatefulSet for stable per-pod DNS
+# (e.g. postgres-0.postgres.noted.svc.cluster.local).
+# The backend uses the plain "postgres" hostname, which resolves to the pod IP.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: noted
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+  clusterIP: None

@@ -1,1 +1,17 @@
-# TODO: ConfigMap for non-secret environment variables
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: noted-config
+  namespace: noted
+data:
+  # Non-sensitive runtime configuration.
+  # Sensitive values (DATABASE_URL, JWT_SECRET_KEY, API keys, etc.) live in noted-secrets.
+  AI_PROVIDER: "openai"
+  AI_MODEL: "gpt-4o-mini"
+  # Update CORS_ORIGINS and GOOGLE_REDIRECT_URI to match your domain.
+  CORS_ORIGINS: '["https://noted.yourdomain.com"]'
+  GOOGLE_REDIRECT_URI: "https://noted.yourdomain.com/api/v1/auth/google/callback"
+  LOG_LEVEL: "INFO"
+  # JSON logging is expected in production so log aggregators (Loki, CloudWatch, etc.) can parse it.
+  LOG_JSON: "true"
+  DEBUG: "false"

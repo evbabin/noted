@@ -54,8 +54,8 @@ export function QuizGenerator({ noteId }: QuizGeneratorProps) {
   };
 
   return (
-    <div className="rounded-lg border bg-white p-4 shadow-sm sm:p-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Generate New Quiz</h3>
+    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
+      <h3 className="mb-4 text-lg font-medium text-gray-900 dark:text-zinc-100">Generate New Quiz</h3>
 
       {showForm ? (
         <div className="space-y-4">
@@ -81,13 +81,13 @@ export function QuizGenerator({ noteId }: QuizGeneratorProps) {
           </form>
 
           {/* Number-of-questions selector (backend range: 3–20) */}
-          <div className="flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:gap-3">
+          <div className="flex flex-col gap-2 text-sm text-gray-600 dark:text-zinc-300 sm:flex-row sm:items-center sm:gap-3">
             <span className="whitespace-nowrap">
               Questions:{' '}
-              <span className="font-semibold text-gray-900">{numQuestions}</span>
+              <span className="font-semibold text-gray-900 dark:text-zinc-100">{numQuestions}</span>
             </span>
             <div className="flex items-center gap-2 sm:flex-1">
-              <span className="text-xs text-gray-400">3</span>
+              <span className="text-xs text-gray-400 dark:text-zinc-500">3</span>
               <input
                 type="range"
                 min={3}
@@ -99,15 +99,15 @@ export function QuizGenerator({ noteId }: QuizGeneratorProps) {
                 data-testid="quiz-generator-num-questions"
                 disabled={createQuiz.isPending}
               />
-              <span className="text-xs text-gray-400">20</span>
+              <span className="text-xs text-gray-400 dark:text-zinc-500">20</span>
             </div>
           </div>
 
           {/* Creation error — e.g. rate limit exceeded (429) */}
           {createQuiz.isError && (
-            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 dark:bg-red-950/40">
               <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">
+              <p className="text-sm text-red-700 dark:text-red-300">
                 {getErrorDetail(createQuiz.error) ||
                   'Failed to start quiz generation. Please try again.'}
               </p>
@@ -124,12 +124,12 @@ export function QuizGenerator({ noteId }: QuizGeneratorProps) {
             <>
               <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
               <div>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-gray-900 dark:text-zinc-100">
                   {activeQuiz
                     ? `Generating: "${activeQuiz.title}"`
                     : 'Starting generation...'}
                 </p>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="mt-1 text-sm text-gray-500 dark:text-zinc-400">
                   This usually takes 15–30 seconds. Our AI is analyzing your
                   note&hellip;
                 </p>
@@ -141,7 +141,7 @@ export function QuizGenerator({ noteId }: QuizGeneratorProps) {
             <>
               <CheckCircle2 className="w-8 h-8 text-green-600" />
               <div>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-gray-900 dark:text-zinc-100">
                   Quiz &ldquo;{activeQuiz!.title}&rdquo; generated successfully!
                 </p>
               </div>
@@ -168,10 +168,10 @@ export function QuizGenerator({ noteId }: QuizGeneratorProps) {
             <>
               <AlertCircle className="w-8 h-8 text-red-600" />
               <div>
-                <p className="text-sm font-medium text-red-900">
+                <p className="text-sm font-medium text-red-900 dark:text-red-200">
                   Failed to generate quiz
                 </p>
-                <p className="text-sm text-red-600 mt-1">
+                <p className="mt-1 text-sm text-red-600 dark:text-red-300">
                   {activeQuiz?.error_message ||
                     'An unknown error occurred during generation.'}
                 </p>

@@ -28,6 +28,10 @@ services:
     ports:
       - "8000:8000"
     env_file: ./backend/.env
+    environment:
+      # Override host-oriented URLs from .env so in-container services resolve via the Docker network.
+      DATABASE_URL: postgresql+asyncpg://noted:noted@postgres:5432/noted
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       postgres:
         condition: service_healthy
@@ -40,6 +44,9 @@ services:
   worker:
     build: ./backend
     env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://noted:noted@postgres:5432/noted
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       postgres:
         condition: service_healthy
@@ -50,13 +57,15 @@ services:
     command: arq app.tasks.worker.WorkerSettings
 
   frontend:
-    build: ./frontend
+    image: node:20-alpine
+    working_dir: /app
     ports:
       - "5173:5173"
     volumes:
       - ./frontend:/app
-      - /app/node_modules
-    command: pnpm dev --host 0.0.0.0
+      - frontend_node_modules:/app/node_modules
+    command: sh -c "corepack enable && corepack prepare pnpm@9 --activate && pnpm install --frozen-lockfile && pnpm dev --host 0.0.0.0"
 
 volumes:
   pgdata:
+  frontend_node_modules:

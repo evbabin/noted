@@ -1,13 +1,15 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingState } from '../components/ui/LoadingState';
 import { Spinner } from '../components/ui/Spinner';
+import { AppShell } from '../components/layout/AppShell';
 import { QuizCard } from '../components/quiz/QuizCard';
 import { QuizReview } from '../components/quiz/QuizReview';
 import { QuizResponse } from '../types/api';
 import { useQuiz, useQuizSession } from '../hooks/useQuiz';
+import { useWorkspace } from '../hooks/useWorkspace';
 
 // ---------------------------------------------------------------------------
 // Inner component: owns the session hook and renders the active phase.
@@ -56,18 +58,21 @@ function QuizSession({ quiz }: { quiz: QuizResponse }) {
     <div className="space-y-6">
       {/* Progress bar */}
       <div className="space-y-1.5">
-        <div className="flex flex-col gap-1 text-sm text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1 text-sm text-gray-500 dark:text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
           <span>
-            Question <span className="font-medium text-gray-900">{currentIndex + 1}</span>{' '}
+            Question{' '}
+            <span className="font-semibold text-gray-900 dark:text-zinc-100">
+              {currentIndex + 1}
+            </span>{' '}
             of {totalQuestions}
           </span>
-          <span className="text-gray-400">
+          <span className="text-gray-400 dark:text-zinc-500">
             {answeredCount} / {totalQuestions} answered
           </span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-zinc-800">
           <div
-            className="bg-blue-600 h-1.5 rounded-full transition-all duration-300 ease-out"
+            className="h-1.5 rounded-full bg-brand-gradient transition-all duration-300 ease-out"
             style={{ width: `${progressFraction * 100}%` }}
           />
         </div>
@@ -84,8 +89,11 @@ function QuizSession({ quiz }: { quiz: QuizResponse }) {
 
       {/* Inline submission error */}
       {submitError && (
-        <div className="flex items-center gap-2 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+        <div
+          role="alert"
+          className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-950/40 dark:text-red-300"
+        >
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
           <span>Failed to submit quiz. Please try again.</span>
         </div>
       )}
@@ -121,42 +129,63 @@ function QuizSession({ quiz }: { quiz: QuizResponse }) {
 
 export function QuizReviewPage() {
   const { quizId } = useParams();
+  const { state } = useLocation();
+  const workspaceId: string | undefined = state?.workspaceId;
+  const noteIdFromState: string | undefined = state?.noteId;
+
   const { data: quiz, isLoading, error } = useQuiz(quizId ?? '');
+  const { data: workspace } = useWorkspace(workspaceId);
+
+  // Prefer noteId from state; fall back to quiz.note_id once loaded.
+  const noteId = noteIdFromState ?? quiz?.note_id;
+  const quizListUrl = noteId ? `/notes/${noteId}/quizzes` : '/dashboard';
+  const quizListState = workspaceId ? { workspaceId, noteId } : undefined;
+
+  const wrap = (node: React.ReactNode) =>
+    workspaceId ? (
+      <AppShell workspaceId={workspaceId} workspaceName={workspace?.name}>
+        {node}
+      </AppShell>
+    ) : (
+      <div className="min-h-screen bg-gray-50 dark:bg-zinc-950">{node}</div>
+    );
 
   if (isLoading) {
-    return (
+    return wrap(
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
         <LoadingState
           title="Loading quiz…"
           message="Fetching questions and the latest attempt history."
         />
-      </div>
+      </div>,
     );
   }
 
   if (error || !quiz) {
-    return (
+    return wrap(
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
         <EmptyState
           title="Quiz unavailable"
           description="We couldn't load this quiz right now. Please go back and try again."
           action={
             <Link
-              to="/dashboard"
+              to={quizListUrl}
+              state={quizListState}
               className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
             >
-              Back to dashboard
+              <ArrowLeft className="w-4 h-4" />
+              Back to Quizzes
             </Link>
           }
         />
-      </div>
+      </div>,
     );
   }
 
   // Guard: quiz might not be completed (e.g. user navigates here directly
   // while generation is still in progress).
   if (quiz.status !== 'completed' || quiz.questions.length === 0) {
-    return (
+    return wrap(
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
         <EmptyState
           title={quiz.status === 'failed' ? 'Quiz generation failed' : 'Quiz is not ready yet'}
@@ -167,7 +196,8 @@ export function QuizReviewPage() {
           }
           action={
             <Link
-              to={`/notes/${quiz.note_id}/quizzes`}
+              to={quizListUrl}
+              state={quizListState}
               className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -175,26 +205,27 @@ export function QuizReviewPage() {
             </Link>
           }
         />
-      </div>
+      </div>,
     );
   }
 
-  return (
+  return wrap(
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
       {/* Page header */}
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
         <Link
-          to={`/notes/${quiz.note_id}/quizzes`}
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+          to={quizListUrl}
+          state={quizListState}
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-zinc-400 dark:hover:text-zinc-100"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Quizzes
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">{quiz.title}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100">{quiz.title}</h1>
       </div>
 
       <QuizSession quiz={quiz} />
-    </div>
+    </div>,
   );
 }
 
