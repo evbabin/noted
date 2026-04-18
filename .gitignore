@@ -60,3 +60,5 @@ docker-compose.override.yml
 # Misc
 *.bak
 *.tmp
+k8s/secrets.yml
+noted-k3s.pem
