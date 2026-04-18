@@ -25,11 +25,11 @@ const featureCards = [
   {
     title: 'Real-time collaboration',
     description:
-      'Write together with live presence, shared cursors, and synchronized edits powered by WebSockets.',
+      'Learn together with live presence, shared cursors, and synchronized edits.',
     icon: Users,
   },
   {
-    title: 'AI quiz generation',
+    title: 'Quiz generation',
     description:
       'Turn any note into multiple-choice, fill-in-the-blank, or flashcard quizzes in a single click.',
     icon: BrainCircuit,
@@ -37,7 +37,7 @@ const featureCards = [
   {
     title: 'Fast workspace search',
     description:
-      'PostgreSQL full-text search with snippet highlighting finds the right concept in any notebook instantly.',
+      'Full-text search with snippet highlighting finds the right concept in any notebook instantly.',
     icon: Search,
   },
   {
@@ -73,7 +73,7 @@ const workflowSteps = [
 ] as const;
 
 const highlights = [
-  'Email/password and Google OAuth sign-in',
+  'Secure sign-in options and managed access',
   'Shared workspaces for class notes and study groups',
   'Quiz review flow with attempt history and scoring',
   'Dark mode, keyboard shortcuts, and responsive UI',
@@ -137,7 +137,7 @@ export function Landing() {
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-gray-600 dark:text-zinc-300 sm:text-lg">
                 Noted bridges the gap between note-taking and studying. Capture knowledge
-                with your team, collaborate in real time, and generate quizzes from your
+                with your classmates, collaborate in real time, and generate quizzes from your
                 notes without ever leaving the workspace.
               </p>
 
@@ -182,8 +182,7 @@ export function Landing() {
                 From blank page to confident recall
               </h2>
               <p className="mt-4 text-base leading-7 text-gray-600 dark:text-zinc-300">
-                Noted combines the writing, sharing, search, and quiz surfaces that are
-                usually spread across several apps — and keeps them in sync in real time.
+                Noted combines the writing, sharing, search, and quiz surfaces that are usually spread across several apps, and keeps them in sync in real time.
               </p>
             </div>
 
