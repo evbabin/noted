@@ -2,9 +2,7 @@ name: Backend CI
 
 on:
   push:
-    paths: ['backend/**']
   pull_request:
-    paths: ['backend/**']
 
 # Cancel any in-progress run on the same branch when a newer commit is pushed.
 # Keeps resource usage low on fast-moving branches without affecting main.
