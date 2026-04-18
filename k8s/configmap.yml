@@ -6,8 +6,10 @@ metadata:
 data:
   # Non-sensitive runtime configuration.
   # Sensitive values (DATABASE_URL, JWT_SECRET_KEY, API keys, etc.) live in noted-secrets.
-  AI_PROVIDER: "openai"
-  AI_MODEL: "gpt-4o-mini"
+  AI_PROVIDER: "openrouter"
+  # OpenRouter model slug — see https://openrouter.ai/models for the full list.
+  # Keep this to a cheap/fast model for quiz generation; swap if you want higher quality.
+  AI_MODEL: "google/gemma-4-26b-a4b-it:free"
   CORS_ORIGINS: '["https://usenoted.study"]'
   # Frontend handles the OAuth callback and posts the code to the backend; this URI is
   # what Google redirects to after consent, so it must match the registered value in the

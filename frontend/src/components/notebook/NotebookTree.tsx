@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileText, FilePlus, FolderOpen } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { isAxiosError } from 'axios';
 
-import { notebooksApi } from '../../api/notebooks';
-import { notesApi } from '../../api/notes';
-import type { Notebook, NoteSummary } from '../../types/api';
+import { useNotebooks } from '../../hooks/useNotebook';
+import { useCreateNote, useNotesInNotebook } from '../../hooks/useNote';
+import type { Notebook } from '../../types/api';
 import { EmptyState } from '../ui/EmptyState';
 import { LoadingState } from '../ui/LoadingState';
 
@@ -22,11 +21,7 @@ export function NotebookTree({ workspaceId, onNavigate }: NotebookTreeProps) {
     isLoading,
     isError,
     refetch,
-  } = useQuery<Notebook[]>({
-    queryKey: ['notebooks', workspaceId],
-    queryFn: () => notebooksApi.list(workspaceId),
-    meta: { errorMessage: 'Failed to load notebooks.' },
-  });
+  } = useNotebooks(workspaceId);
 
   if (isLoading) {
     return (
@@ -89,37 +84,37 @@ function NotebookNode({
 }) {
   const [expanded, setExpanded] = useState(false);
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
+  // Only fetch notes when the user expands the notebook.
   const {
     data: notes,
     isLoading,
     isError,
     refetch,
-  } = useQuery<NoteSummary[]>({
-    queryKey: ['notes', notebook.id],
-    queryFn: () => notesApi.listInNotebook(notebook.id),
-    enabled: expanded,
-    meta: { errorMessage: 'Failed to load notes.' },
-  });
+  } = useNotesInNotebook(expanded ? notebook.id : undefined);
 
   // Create a new note inside this notebook, then navigate to it.
-  const createNoteMutation = useMutation({
-    mutationFn: () =>
-      notesApi.create(notebook.id, { title: 'Untitled' }),
-    onSuccess: (note) => {
-      queryClient.invalidateQueries({ queryKey: ['notes', notebook.id] });
-      toast.success('Note created');
-      onNavigate?.();
-      navigate(`/workspaces/${workspaceId}/notes/${note.id}`);
-    },
-    onError: (err) => {
-      const message = isAxiosError<{ detail?: string }>(err)
-        ? err.response?.data?.detail ?? 'Failed to create note.'
-        : 'Failed to create note.';
-      toast.error(message);
-    },
-  });
+  const createNoteMutation = useCreateNote(notebook.id);
+
+  const handleCreateNote = () => {
+    if (!expanded) setExpanded(true);
+    createNoteMutation.mutate(
+      { title: 'Untitled' },
+      {
+        onSuccess: (note) => {
+          toast.success('Note created');
+          onNavigate?.();
+          navigate(`/workspaces/${workspaceId}/notes/${note.id}`);
+        },
+        onError: (err) => {
+          const message = isAxiosError<{ detail?: string }>(err)
+            ? err.response?.data?.detail ?? 'Failed to create note.'
+            : 'Failed to create note.';
+          toast.error(message);
+        },
+      },
+    );
+  };
 
   return (
     <li>
@@ -139,10 +134,7 @@ function NotebookNode({
           type="button"
           title="New note"
           aria-label={`New note in ${notebook.title}`}
-          onClick={() => {
-            if (!expanded) setExpanded(true);
-            createNoteMutation.mutate();
-          }}
+          onClick={handleCreateNote}
           disabled={createNoteMutation.isPending}
           className="mr-1 rounded p-0.5 text-gray-400 opacity-0 transition-opacity hover:bg-gray-200 hover:text-gray-700 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 group-hover:opacity-100 aria-expanded:opacity-100 disabled:opacity-50"
         >

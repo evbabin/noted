@@ -27,11 +27,17 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Prefer DATABASE_URL from the environment over the placeholder in alembic.ini so the
-# same alembic invocation works in local dev, CI, and k8s pods without editing the ini.
+# alembic.ini intentionally leaves sqlalchemy.url blank — we require DATABASE_URL from
+# the environment so the same alembic invocation works in local dev, CI, and k8s pods
+# without editing the ini. Fail loudly rather than silently connecting to a localhost
+# default if it's missing.
 _db_url = os.environ.get("DATABASE_URL")
-if _db_url:
-    config.set_main_option("sqlalchemy.url", _db_url)
+if not _db_url:
+    raise RuntimeError(
+        "DATABASE_URL is not set — alembic cannot run without it. "
+        "Set it in your shell, .env, or the pod's envFrom Secret."
+    )
+config.set_main_option("sqlalchemy.url", _db_url)
 
 target_metadata = Base.metadata
 

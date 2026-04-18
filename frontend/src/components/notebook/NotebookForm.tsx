@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { FolderPlus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { isAxiosError } from 'axios';
 
-import { notebooksApi } from '../../api/notebooks';
+import { useCreateNotebook } from '../../hooks/useNotebook';
 import type { Notebook } from '../../types/api';
 
 interface NotebookFormProps {
@@ -22,32 +21,30 @@ interface NotebookFormProps {
 export function NotebookForm({ workspaceId, onCreated }: NotebookFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState('');
-  const queryClient = useQueryClient();
 
-  const createMutation = useMutation({
-    mutationFn: (newTitle: string) =>
-      notebooksApi.create(workspaceId, { title: newTitle }),
-    onSuccess: (notebook) => {
-      // Refresh the sidebar notebook list immediately.
-      queryClient.invalidateQueries({ queryKey: ['notebooks', workspaceId] });
-      setTitle('');
-      setIsOpen(false);
-      toast.success(`"${notebook.title}" created`);
-      onCreated?.(notebook);
-    },
-    onError: (err) => {
-      const message = isAxiosError<{ detail?: string }>(err)
-        ? err.response?.data?.detail ?? 'Failed to create notebook.'
-        : 'Failed to create notebook.';
-      toast.error(message);
-    },
-  });
+  const createMutation = useCreateNotebook(workspaceId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = title.trim();
     if (!trimmed || createMutation.isPending) return;
-    createMutation.mutate(trimmed);
+    createMutation.mutate(
+      { title: trimmed },
+      {
+        onSuccess: (notebook) => {
+          setTitle('');
+          setIsOpen(false);
+          toast.success(`"${notebook.title}" created`);
+          onCreated?.(notebook);
+        },
+        onError: (err) => {
+          const message = isAxiosError<{ detail?: string }>(err)
+            ? err.response?.data?.detail ?? 'Failed to create notebook.'
+            : 'Failed to create notebook.';
+          toast.error(message);
+        },
+      },
+    );
   };
 
   if (!isOpen) {

@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_user, get_db
+from app.logging import get_logger
 from app.models.user import User
 from app.schemas.auth import (
     LoginRequest,
@@ -16,6 +17,8 @@ from app.schemas.auth import (
 )
 from app.schemas.user import UserResponse
 from app.services import auth_service
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -68,7 +71,11 @@ async def logout(
         if claims.get("type") == "refresh" and "sub" in claims and "jti" in claims:
             await auth_service.invalidate_refresh_token(claims["sub"], claims["jti"])
     except Exception:
-        pass
+        # Logout always succeeds from the caller's perspective — an expired or
+        # malformed refresh token is a no-op invalidation, not a user-facing error.
+        # We still log so repeated failures (Redis outage, bad signing key rotation)
+        # surface in observability rather than silently degrading.
+        logger.warning("Failed to invalidate refresh token on logout", exc_info=True)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

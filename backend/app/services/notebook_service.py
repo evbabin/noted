@@ -22,7 +22,9 @@ async def create_notebook(
         workspace_id=workspace_id, title=data.title, sort_order=new_order
     )
     db.add(notebook)
-    await db.commit()
+    # Flush (not commit) so get_db's request-scoped transaction stays the single
+    # boundary; refresh picks up server-side defaults (id, created_at).
+    await db.flush()
     await db.refresh(notebook)
     return notebook
 
@@ -49,7 +51,7 @@ async def update_notebook(
     notebook = await get_notebook(db, notebook_id)
     if data.title is not None:
         notebook.title = data.title
-    await db.commit()
+    await db.flush()
     await db.refresh(notebook)
     return notebook
 
@@ -57,7 +59,7 @@ async def update_notebook(
 async def delete_notebook(db: AsyncSession, notebook_id: uuid.UUID) -> None:
     notebook = await get_notebook(db, notebook_id)
     await db.delete(notebook)
-    await db.commit()
+    await db.flush()
 
 
 async def reorder_notebooks(
@@ -74,4 +76,4 @@ async def reorder_notebooks(
         await db.execute(
             update(Notebook).where(Notebook.id == nb_id).values(sort_order=index)
         )
-    await db.commit()
+    await db.flush()

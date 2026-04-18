@@ -1,14 +1,16 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import toast from "react-hot-toast";
 
-import { sharingApi } from "../../api/sharing";
-import { workspaceKeys } from "../../hooks/useWorkspace";
+import {
+  useInviteMember,
+  useRemoveMember,
+  useUpdateMemberRole,
+  useWorkspaceMembers,
+} from "../../hooks/useSharing";
 import { useAuthStore } from "../../stores/authStore";
 import type {
   ApiError,
-  InviteWorkspaceMemberRequest,
   MemberRole,
   WorkspaceInviteResult,
   WorkspaceMember,
@@ -18,8 +20,6 @@ import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
 import { Input } from "../ui/Input";
 import { LoadingState } from "../ui/LoadingState";
-
-const MEMBER_QUERY_KEY = "workspace-members";
 
 const ROLE_LABELS: Record<MemberRole, string> = {
   owner: "Owner",
@@ -47,7 +47,6 @@ interface MemberManagerProps {
 }
 
 export function MemberManager({ workspaceId }: MemberManagerProps) {
-  const queryClient = useQueryClient();
   const currentUser = useAuthStore((state) => state.user);
 
   const [inviteEmail, setInviteEmail] = useState("");
@@ -61,11 +60,7 @@ export function MemberManager({ workspaceId }: MemberManagerProps) {
     isError,
     error,
     refetch,
-  } = useQuery<WorkspaceMember[]>({
-    queryKey: memberQueryKey(workspaceId),
-    queryFn: () => sharingApi.listMembers(workspaceId),
-    enabled: Boolean(workspaceId),
-  });
+  } = useWorkspaceMembers(workspaceId);
 
   const currentMembership = members.find(
     (member) => member.user_id === currentUser?.id,
@@ -89,87 +84,36 @@ export function MemberManager({ workspaceId }: MemberManagerProps) {
     [members],
   );
 
-  async function refreshMemberQueries() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: memberQueryKey(workspaceId) }),
-      queryClient.invalidateQueries({ queryKey: ["workspace", workspaceId] }),
-      queryClient.invalidateQueries({
-        queryKey: workspaceKeys.detail(workspaceId),
-      }),
-    ]);
-  }
-
-  const inviteMutation = useMutation({
-    mutationFn: (payload: InviteWorkspaceMemberRequest) =>
-      sharingApi.inviteMember(workspaceId, payload),
-    onSuccess: async (result) => {
-      await refreshMemberQueries();
-      setInviteEmail("");
-      setInviteRole("viewer");
-
-      if (isPendingInvitation(result)) {
-        toast.success(
-          `Invitation saved for ${result.email}. It will apply when they sign up.`,
-        );
-        return;
-      }
-
-      toast.success(`Added ${getMemberLabel(result)} to the workspace`);
-    },
-    onError: (mutationError) => {
-      toast.error(
-        extractErrorDetail(mutationError) ?? "Failed to invite member",
-      );
-    },
-  });
-
-  const updateRoleMutation = useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: MemberRole }) =>
-      sharingApi.updateMemberRole(workspaceId, userId, { role }),
-    onSuccess: async (member) => {
-      await refreshMemberQueries();
-      toast.success(
-        `Updated ${getMemberLabel(member)} to ${ROLE_LABELS[member.role]}`,
-      );
-    },
-    onError: (mutationError) => {
-      toast.error(
-        extractErrorDetail(mutationError) ?? "Failed to update member role",
-      );
-    },
-    onSettled: () => {
-      setRoleUpdateUserId(null);
-    },
-  });
-
-  const removeMutation = useMutation({
-    mutationFn: (userId: string) =>
-      sharingApi.removeMember(workspaceId, userId),
-    onSuccess: async () => {
-      await refreshMemberQueries();
-      toast.success("Removed member from the workspace");
-    },
-    onError: (mutationError) => {
-      toast.error(
-        extractErrorDetail(mutationError) ?? "Failed to remove member",
-      );
-    },
-    onSettled: () => {
-      setRemoveUserId(null);
-    },
-  });
+  const inviteMutation = useInviteMember(workspaceId);
+  const updateRoleMutation = useUpdateMemberRole(workspaceId);
+  const removeMutation = useRemoveMember(workspaceId);
 
   function handleInviteSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedEmail = inviteEmail.trim().toLowerCase();
-    if (!normalizedEmail) {
-      return;
-    }
+    if (!normalizedEmail) return;
 
-    inviteMutation.mutate({
-      email: normalizedEmail,
-      role: inviteRole,
-    });
+    inviteMutation.mutate(
+      { email: normalizedEmail, role: inviteRole },
+      {
+        onSuccess: (result) => {
+          setInviteEmail("");
+          setInviteRole("viewer");
+          if (isPendingInvitation(result)) {
+            toast.success(
+              `Invitation saved for ${result.email}. It will apply when they sign up.`,
+            );
+            return;
+          }
+          toast.success(`Added ${getMemberLabel(result)} to the workspace`);
+        },
+        onError: (mutationError) => {
+          toast.error(
+            extractErrorDetail(mutationError) ?? "Failed to invite member",
+          );
+        },
+      },
+    );
   }
 
   function handleInviteRoleChange(nextRole: string) {
@@ -179,22 +123,43 @@ export function MemberManager({ workspaceId }: MemberManagerProps) {
   }
 
   function handleRoleChange(userId: string, nextRole: string) {
-    if (!isMemberRole(nextRole)) {
-      return;
-    }
+    if (!isMemberRole(nextRole)) return;
 
     const member = members.find((candidate) => candidate.user_id === userId);
-    if (!member || member.role === nextRole) {
-      return;
-    }
+    if (!member || member.role === nextRole) return;
 
     setRoleUpdateUserId(userId);
-    updateRoleMutation.mutate({ userId, role: nextRole });
+    updateRoleMutation.mutate(
+      { userId, data: { role: nextRole } },
+      {
+        onSuccess: (updated) => {
+          toast.success(
+            `Updated ${getMemberLabel(updated)} to ${ROLE_LABELS[updated.role]}`,
+          );
+        },
+        onError: (mutationError) => {
+          toast.error(
+            extractErrorDetail(mutationError) ?? "Failed to update member role",
+          );
+        },
+        onSettled: () => setRoleUpdateUserId(null),
+      },
+    );
   }
 
   function handleRemoveMember(userId: string) {
     setRemoveUserId(userId);
-    removeMutation.mutate(userId);
+    removeMutation.mutate(userId, {
+      onSuccess: () => {
+        toast.success("Removed member from the workspace");
+      },
+      onError: (mutationError) => {
+        toast.error(
+          extractErrorDetail(mutationError) ?? "Failed to remove member",
+        );
+      },
+      onSettled: () => setRemoveUserId(null),
+    });
   }
 
   return (
@@ -374,10 +339,6 @@ export function MemberManager({ workspaceId }: MemberManagerProps) {
       </div>
     </section>
   );
-}
-
-function memberQueryKey(workspaceId: string) {
-  return [MEMBER_QUERY_KEY, workspaceId] as const;
 }
 
 function isMemberRole(value: string): value is MemberRole {

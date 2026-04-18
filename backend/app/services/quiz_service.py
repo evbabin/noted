@@ -51,6 +51,12 @@ async def create_quiz(
 
     note_content = note.content_text or ""
 
+    # Commit *before* enqueue — this is the one place we deliberately break the
+    # "single transaction per request" rule. If we relied on get_db's outer commit,
+    # an ARQ worker polling Redis could grab the job between enqueue and commit
+    # and find the quiz row doesn't exist yet, silently dropping the generation.
+    await db.commit()
+
     await arq_pool.enqueue_job(
         "generate_quiz_task",
         str(quiz.id),
@@ -59,7 +65,6 @@ async def create_quiz(
         _queue_name=queue_name(),
     )
 
-    await db.commit()
     await db.refresh(quiz)
     return quiz
 
@@ -141,7 +146,6 @@ async def submit_attempt(
     )
     db.add(attempt)
     await db.flush()
-    await db.commit()
     await db.refresh(attempt)
     return attempt
 

@@ -147,7 +147,15 @@ class OpenAIProvider:
         from openai import AsyncOpenAI
 
         self._model = model
-        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+        # Bump max_retries above the SDK default of 2. When the upstream is a
+        # free-tier OpenRouter model (e.g. Gemma :free), transient 429s from
+        # the shared Google AI Studio backend are common; the SDK's default
+        # backoff (~0.4 s, 0.9 s) isn't long enough to ride them out. With 5
+        # retries we get roughly 8–10 seconds of accumulated exponential
+        # backoff before surfacing the error, which is enough to recover from
+        # most short rate-limit spikes without holding the ARQ worker for too
+        # long.
+        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url, max_retries=5)
 
     async def generate_quiz_from_content(
         self,

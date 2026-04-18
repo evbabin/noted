@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
-import { searchApi } from "../../api/search";
+import { useSearch } from "../../hooks/useSearch";
 import type { SearchHit } from "../../types/api";
 
 interface SearchPanelProps {
@@ -34,15 +33,10 @@ export function SearchPanel({ workspaceId, open, onClose }: SearchPanelProps) {
     return () => window.clearTimeout(id);
   }, [query]);
 
-  const { data, isFetching, isError, refetch } = useQuery({
-    queryKey: ["search", workspaceId, debounced],
-    queryFn: () => searchApi.search(workspaceId, debounced),
-    enabled: open && debounced.length > 0,
-    staleTime: 60_000,
-    meta: {
-      errorMessage: "Search failed. Please try again.",
-      suppressErrorToast: true,
-    },
+  const { data, isFetching, isError, refetch } = useSearch({
+    workspaceId,
+    query: debounced,
+    enabled: open,
   });
 
   const results = data?.results ?? [];

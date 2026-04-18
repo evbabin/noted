@@ -71,9 +71,13 @@ test.describe("search-flow", () => {
         waitUntil: "networkidle",
       });
 
+      // Use the exact accessible name to avoid matching the user-menu button
+      // whose display name can also start with "Search-" (seed users are named
+      // "Search-owner-…"). The search-trigger button's name is derived from
+      // its text + keyboard-shortcut badge — match its prefix explicitly.
       await page
         .getByRole("banner")
-        .getByRole("button", { name: /Search/ })
+        .getByRole("button", { name: /^Search notes/ })
         .click();
       await expect(page.getByRole("dialog")).toBeVisible();
 

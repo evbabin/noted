@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 
 import { AppShell } from "../components/layout/AppShell";
@@ -8,24 +7,13 @@ import { NotebookTree } from "../components/notebook/NotebookTree";
 import { SearchPanel } from "../components/search/SearchPanel";
 import { LoadingState } from "../components/ui/LoadingState";
 import { MemberManager } from "../components/workspace/MemberManager";
-import { workspacesApi } from "../api/workspaces";
-import type { WorkspaceWithMembers } from "../types/api";
+import { useWorkspace } from "../hooks/useWorkspace";
 
 export function Workspace() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const {
-    data: workspace,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery<WorkspaceWithMembers>({
-    queryKey: ["workspace", workspaceId],
-    queryFn: () => workspacesApi.get(workspaceId as string),
-    enabled: Boolean(workspaceId),
-    meta: { errorMessage: "Failed to load workspace." },
-  });
+  const { data: workspace, isLoading, isError, refetch } = useWorkspace(workspaceId);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

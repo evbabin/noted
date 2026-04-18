@@ -4,6 +4,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
+from app.logging import get_logger
 from app.models.user import User
 from app.websocket.handlers import (
     clear_presence,
@@ -18,6 +19,8 @@ from app.websocket.handlers import (
     make_user_left_message,
 )
 from app.websocket.manager import manager
+
+logger = get_logger(__name__)
 
 router = APIRouter()
 
@@ -118,14 +121,23 @@ async def websocket_note_endpoint(websocket: WebSocket, note_id: uuid.UUID) -> N
     except WebSocketDisconnect:
         pass
     finally:
+        # Cleanup must not re-raise (it runs in `finally` on disconnect), but we
+        # still want visibility — a persistent failure here means user edits
+        # aren't being flushed to the DB, which is not a "silent pass" situation.
         try:
             await flush_note_on_disconnect(note_id)
         except Exception:
-            pass
+            logger.exception(
+                "Failed to flush note on websocket disconnect", note_id=str(note_id)
+            )
 
         await manager.disconnect(note_id, user.id)
         try:
             await clear_presence(note_id, user.id)
             await manager.broadcast(note_id, make_user_left_message(user.id))
         except Exception:
-            pass
+            logger.exception(
+                "Failed to clear presence / broadcast leave on disconnect",
+                note_id=str(note_id),
+                user_id=str(user.id),
+            )

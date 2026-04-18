@@ -1,5 +1,4 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowRight,
   FolderPlus,
@@ -12,38 +11,24 @@ import toast from 'react-hot-toast';
 
 import { authApi } from '../api/auth';
 import { tokenStorage } from '../api/client';
-import { workspacesApi } from '../api/workspaces';
 import { EmptyState } from '../components/ui/EmptyState';
 import { LoadingState } from '../components/ui/LoadingState';
 import { Logo } from '../components/ui/Logo';
+import { useCreateWorkspace, useWorkspaces } from '../hooks/useWorkspace';
 import { useAuthStore } from '../stores/authStore';
-import type { Workspace } from '../types/api';
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const user = useAuthStore((state) => state.user);
   const clearSession = useAuthStore((state) => state.clearSession);
 
-  const {
-    data: workspaces,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery<Workspace[]>({
-    queryKey: ['workspaces'],
-    queryFn: workspacesApi.list,
-    meta: { errorMessage: 'Could not load workspaces.' },
-  });
+  const { data: workspaces, isLoading, isError, refetch } = useWorkspaces();
 
-  const createMutation = useMutation({
-    mutationFn: workspacesApi.create,
-    meta: { errorMessage: 'Failed to create workspace.' },
-    onSuccess: (created) => {
-      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
-      toast.success(`Workspace "${created.name}" created`);
-    },
-  });
+  const createMutation = useCreateWorkspace();
+  const handleCreate = (payload: { name: string; description?: string | null }) =>
+    createMutation.mutate(payload, {
+      onSuccess: (created) => toast.success(`Workspace "${created.name}" created`),
+    });
 
   async function handleLogout() {
     const refresh = tokenStorage.getRefresh();
@@ -96,7 +81,7 @@ export function Dashboard() {
         </section>
 
         <CreateWorkspaceForm
-          onSubmit={(payload) => createMutation.mutate(payload)}
+          onSubmit={handleCreate}
           submitting={createMutation.isPending}
         />
 

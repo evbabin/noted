@@ -95,7 +95,10 @@ test.describe("sharing-flow", () => {
       await memberPage.getByTestId("note-title-input").fill(blockedTitle);
       await memberPage.getByTestId("note-title-input").blur();
 
-      await expect(memberPage.getByText("Title save failed")).toBeVisible();
+      // The SaveIndicator surfaces any failed autosave as "Save failed" — the
+      // viewer role the member starts with rejects the title update with 403
+      // and the indicator flips to the error label.
+      await expect(memberPage.getByText("Save failed")).toBeVisible();
 
       await roleSelect.selectOption("editor");
       await expect(roleSelect).toHaveValue("editor");

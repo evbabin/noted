@@ -128,6 +128,10 @@ async def rotate_refresh_token(token: str, db: AsyncSession) -> tuple[User, str,
 
 
 async def register_user(db: AsyncSession, data: RegisterRequest) -> User:
+    # Deferred to avoid an import cycle:
+    # auth_service → sharing_service → websocket.manager → auth_service.decode_token.
+    # Proper fix is to extract decode_token into a lower-layer security module;
+    # until then, this local import is load-bearing.
     from app.services import sharing_service
 
     existing = await db.execute(select(User).where(User.email == data.email))
@@ -160,6 +164,10 @@ def google_authorization_url(state: str | None = None) -> str:
 
 
 async def google_oauth_flow(db: AsyncSession, code: str) -> User:
+    # Deferred to avoid an import cycle:
+    # auth_service → sharing_service → websocket.manager → auth_service.decode_token.
+    # Proper fix is to extract decode_token into a lower-layer security module;
+    # until then, this local import is load-bearing.
     from app.services import sharing_service
 
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:

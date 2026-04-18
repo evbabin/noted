@@ -1,19 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { notesApi } from "../api/notes";
-import { workspacesApi } from "../api/workspaces";
 import { NoteEditor } from "../components/editor/NoteEditor";
 import { AppShell } from "../components/layout/AppShell";
 import { Button } from "../components/ui/Button";
 import { LoadingState } from "../components/ui/LoadingState";
 import { Spinner } from "../components/ui/Spinner";
-import type {
-  Note,
-  NoteUpdateRequest,
-  WorkspaceWithMembers,
-} from "../types/api";
+import { noteKeys, useNote, useUpdateNote } from "../hooks/useNote";
+import { useWorkspace } from "../hooks/useWorkspace";
+import type { NoteUpdateRequest } from "../types/api";
 
 const TITLE_AUTOSAVE_DEBOUNCE_MS = 1000;
 const CONTENT_AUTOSAVE_DEBOUNCE_MS = 2000;
@@ -28,24 +25,14 @@ export function NotePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: workspace, refetch: refetchWorkspace } = useQuery<WorkspaceWithMembers>({
-    queryKey: ["workspace", workspaceId],
-    queryFn: () => workspacesApi.get(workspaceId as string),
-    enabled: Boolean(workspaceId),
-    meta: { errorMessage: "Failed to load workspace." },
-  });
+  const { data: workspace, refetch: refetchWorkspace } = useWorkspace(workspaceId);
 
   const {
     data: note,
     isLoading,
     isError,
     refetch: refetchNote,
-  } = useQuery<Note>({
-    queryKey: ["note", noteId],
-    queryFn: () => notesApi.get(noteId as string),
-    enabled: Boolean(noteId),
-    meta: { errorMessage: "Failed to load note." },
-  });
+  } = useNote(noteId);
 
   const [title, setTitle] = useState("");
   const [titleStatus, setTitleStatus] = useState<SaveStatus>("idle");
@@ -67,19 +54,24 @@ export function NotePage() {
 
   // ── Title save (REST, debounced) ─────────────────────────────────────────
 
-  const saveTitleMutation = useMutation({
-    mutationFn: (payload: NoteUpdateRequest) =>
-      notesApi.update(noteId as string, payload),
-    meta: { errorMessage: "Failed to save note title." },
-    onMutate: () => setTitleStatus("saving"),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(["note", noteId], updated);
-      queryClient.invalidateQueries({ queryKey: ["notes", updated.notebook_id] });
-      setTitleStatus("saved");
-      setLastSaved(new Date());
+  // Title save uses the shared useUpdateNote hook so cache keys and
+  // invalidation logic stay consistent with other callers. Status
+  // callbacks are attached per-invocation so the SaveIndicator can
+  // track title-save state separately from content-save state.
+  const updateNote = useUpdateNote(noteId ?? "", note?.notebook_id);
+  const saveTitle = useCallback(
+    (payload: NoteUpdateRequest) => {
+      setTitleStatus("saving");
+      updateNote.mutate(payload, {
+        onSuccess: () => {
+          setTitleStatus("saved");
+          setLastSaved(new Date());
+        },
+        onError: () => setTitleStatus("error"),
+      });
     },
-    onError: () => setTitleStatus("error"),
-  });
+    [updateNote],
+  );
 
   const flushTitleSave = useCallback(() => {
     if (titleTimerRef.current !== null) {
@@ -89,8 +81,8 @@ export function NotePage() {
     const payload = pendingTitleRef.current;
     if (Object.keys(payload).length === 0) return;
     pendingTitleRef.current = {};
-    saveTitleMutation.mutate(payload);
-  }, [saveTitleMutation]);
+    saveTitle(payload);
+  }, [saveTitle]);
 
   const scheduleTitleSave = useCallback(
     (patch: NoteUpdateRequest) => {
@@ -114,8 +106,12 @@ export function NotePage() {
     pendingContentRef.current = null;
     setContentStatus("saving");
     try {
+      // Intentionally bypasses useUpdateNote because this path needs
+      // imperative await semantics (Ctrl+S flush, unmount cleanup) —
+      // we still update the shared cache key so hook consumers see
+      // the new content immediately.
       const updated = await notesApi.update(noteId, { content });
-      queryClient.setQueryData(["note", noteId], updated);
+      queryClient.setQueryData(noteKeys.detail(noteId), updated);
       setContentStatus("saved");
       setLastSaved(new Date());
     } catch {

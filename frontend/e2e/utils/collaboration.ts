@@ -417,15 +417,27 @@ async function requestJson<T>(
     headers.Authorization = `Bearer ${options.token}`;
   }
 
-  const response = await request.fetch(url, {
-    method,
-    headers,
-    data: options.data,
-  });
-
   const expectedStatuses = Array.isArray(options.expectedStatus)
     ? options.expectedStatus
     : [options.expectedStatus ?? 200];
+
+  // Backend enforces a strict 60/minute per-IP global rate limit, which is
+  // easy to hit when the whole suite runs serially from one client. Retry
+  // transparently on 429 using the server's Retry-After hint (capped to 65 s
+  // to avoid stacking multi-minute waits). Any other unexpected status falls
+  // through to the original assertion below.
+  const maxRetries = 3;
+  let response = await request.fetch(url, { method, headers, data: options.data });
+  for (let attempt = 0; attempt < maxRetries && response.status() === 429; attempt += 1) {
+    const retryAfterHeader = response.headers()["retry-after"];
+    const retryAfterSeconds = Number(retryAfterHeader);
+    const waitMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+      ? Math.min(retryAfterSeconds, 65) * 1000
+      : 5000;
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+    response = await request.fetch(url, { method, headers, data: options.data });
+  }
+
   const responseText = await response.text();
 
   expect(

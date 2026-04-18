@@ -14,13 +14,13 @@ from app.dependencies import (
     get_current_user,
     get_db,
     require_min_note_role,
+    require_min_quiz_role,
 )
-from app.exceptions import NotFoundError, PermissionDeniedError
 from app.middleware.rate_limit import ai_rate_limit
 from app.models.note import Note
-from app.models.notebook import Notebook
+from app.models.quiz import Quiz
 from app.models.user import User
-from app.models.workspace_member import MemberRole, WorkspaceMember
+from app.models.workspace_member import MemberRole
 from app.queue import get_arq_pool
 from app.schemas.quiz import (
     QuizAttemptCreate,
@@ -30,7 +30,6 @@ from app.schemas.quiz import (
     QuizSummary,
 )
 from app.services import quiz_service
-from sqlalchemy import select
 
 note_quizzes_router = APIRouter(
     prefix="/notes/{note_id}/quizzes",
@@ -72,52 +71,15 @@ async def list_quizzes(
 quizzes_router = APIRouter(prefix="/quizzes", tags=["quizzes"])
 
 
-async def _load_quiz_with_membership(
-    quiz_id: uuid.UUID,
-    db: AsyncSession,
-    user: User,
-    min_role: MemberRole = MemberRole.VIEWER,
-):
-    """RBAC for quiz-id-scoped routes.
-
-    ``require_min_note_role`` takes ``note_id`` from the path; quiz routes
-    only carry ``quiz_id``, so we resolve quiz → note → notebook → workspace
-    → membership manually. 404 for non-members, mirroring the project's
-    "don't leak existence" convention.
-    """
-    quiz = await quiz_service.get_quiz(db, quiz_id)
-    note = await db.get(Note, quiz.note_id)
-    if note is None:
-        raise NotFoundError("Quiz not found")
-    notebook = await db.get(Notebook, note.notebook_id)
-    if notebook is None:
-        raise NotFoundError("Quiz not found")
-
-    result = await db.execute(
-        select(WorkspaceMember).where(
-            WorkspaceMember.workspace_id == notebook.workspace_id,
-            WorkspaceMember.user_id == user.id,
-        )
-    )
-    membership = result.scalar_one_or_none()
-    if membership is None:
-        raise NotFoundError("Quiz not found")
-
-    from app.dependencies import _ROLE_RANK
-
-    if _ROLE_RANK[membership.role] < _ROLE_RANK[min_role]:
-        raise PermissionDeniedError("Insufficient workspace role")
-
-    return quiz
-
-
 @quizzes_router.get("/{quiz_id}", response_model=QuizResponse)
 async def get_quiz(
     quiz_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    quiz: Quiz = Depends(require_min_quiz_role(MemberRole.VIEWER)),
 ):
-    return await _load_quiz_with_membership(quiz_id, db, user)
+    # Reload via the service to pull questions eagerly; the dependency only
+    # hydrates the Quiz row itself, not its ``questions`` relationship.
+    return await quiz_service.get_quiz(db, quiz.id)
 
 
 @quizzes_router.post(
@@ -130,8 +92,8 @@ async def submit_attempt(
     data: QuizAttemptCreate,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
+    _quiz: Quiz = Depends(require_min_quiz_role(MemberRole.VIEWER)),
 ):
-    await _load_quiz_with_membership(quiz_id, db, user, min_role=MemberRole.VIEWER)
     return await quiz_service.submit_attempt(db, quiz_id, user.id, data)
 
 
@@ -140,6 +102,6 @@ async def list_attempts(
     quiz_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
+    _quiz: Quiz = Depends(require_min_quiz_role(MemberRole.VIEWER)),
 ):
-    await _load_quiz_with_membership(quiz_id, db, user, min_role=MemberRole.VIEWER)
     return await quiz_service.list_attempts_for_user(db, quiz_id, user.id)

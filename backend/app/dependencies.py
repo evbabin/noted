@@ -11,6 +11,7 @@ from app.database import AsyncSessionLocal
 from app.exceptions import AuthenticationError, NotFoundError, PermissionDeniedError
 from app.models.note import Note
 from app.models.notebook import Notebook
+from app.models.quiz import Quiz
 from app.models.user import User
 from app.models.workspace_member import MemberRole, WorkspaceMember
 from app.services import auth_service
@@ -177,3 +178,52 @@ def require_min_note_role(min_role: MemberRole):
         r for r, rank in _ROLE_RANK.items() if rank >= threshold
     ]
     return require_note_role(*allowed)
+
+
+def require_quiz_role(*allowed_roles: MemberRole):
+    """Dependency factory enforcing membership + role on quiz-scoped endpoints.
+
+    Quiz routes only carry ``quiz_id`` in the path, so we resolve
+    quiz → note → notebook → workspace → member role manually. Returns 404
+    for missing quizzes and non-members (don't leak existence); 403 for
+    insufficient role.
+    """
+    allowed = set(allowed_roles)
+
+    async def checker(
+        quiz_id: uuid.UUID = Path(...),
+        user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
+    ) -> Quiz:
+        quiz = await db.get(Quiz, quiz_id)
+        if not quiz:
+            raise NotFoundError("Quiz not found")
+        note = await db.get(Note, quiz.note_id)
+        if not note:
+            raise NotFoundError("Quiz not found")
+        notebook = await db.get(Notebook, note.notebook_id)
+        if not notebook:
+            raise NotFoundError("Quiz not found")
+
+        result = await db.execute(
+            select(WorkspaceMember).where(
+                WorkspaceMember.workspace_id == notebook.workspace_id,
+                WorkspaceMember.user_id == user.id,
+            )
+        )
+        membership = result.scalar_one_or_none()
+        if membership is None:
+            raise NotFoundError("Quiz not found")
+        if allowed and membership.role not in allowed:
+            raise PermissionDeniedError("Insufficient workspace role")
+        return quiz
+
+    return checker
+
+
+def require_min_quiz_role(min_role: MemberRole):
+    threshold = _ROLE_RANK[min_role]
+    allowed: Iterable[MemberRole] = [
+        r for r, rank in _ROLE_RANK.items() if rank >= threshold
+    ]
+    return require_quiz_role(*allowed)
