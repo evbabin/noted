@@ -4,14 +4,12 @@ metadata:
   name: backend
   namespace: noted
 spec:
-  replicas: 2
-  # maxUnavailable: 0 ensures capacity never drops below 2 during a rollout;
-  # maxSurge: 1 allows one extra pod to come up before an old one is terminated.
+  replicas: 1
+  # Single-replica deployment on a small node: use Recreate so we don't briefly run two
+  # pods (doubling memory) during a rollout. Trade-off is ~30s of downtime per deploy,
+  # which is acceptable for this footprint.
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
+    type: Recreate
   selector:
     matchLabels:
       app: backend
@@ -26,7 +24,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
         - name: backend
-          image: ghcr.io/your-user/noted-backend:latest
+          image: ghcr.io/evbabin/noted/noted-backend:latest
           ports:
             - containerPort: 8000
           envFrom:
@@ -36,10 +34,10 @@ spec:
                 name: noted-secrets
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "250m"
+              memory: "192Mi"
+              cpu: "100m"
             limits:
-              memory: "512Mi"
+              memory: "384Mi"
               cpu: "500m"
           # readinessProbe: gates traffic — pod removed from Service endpoints if this fails.
           readinessProbe:

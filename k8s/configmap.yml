@@ -8,9 +8,11 @@ data:
   # Sensitive values (DATABASE_URL, JWT_SECRET_KEY, API keys, etc.) live in noted-secrets.
   AI_PROVIDER: "openai"
   AI_MODEL: "gpt-4o-mini"
-  # Update CORS_ORIGINS and GOOGLE_REDIRECT_URI to match your domain.
-  CORS_ORIGINS: '["https://noted.yourdomain.com"]'
-  GOOGLE_REDIRECT_URI: "https://noted.yourdomain.com/api/v1/auth/google/callback"
+  CORS_ORIGINS: '["https://usenoted.study"]'
+  # Frontend handles the OAuth callback and posts the code to the backend; this URI is
+  # what Google redirects to after consent, so it must match the registered value in the
+  # Google Cloud console and the path the React AuthCallback page listens on.
+  GOOGLE_REDIRECT_URI: "https://usenoted.study/auth/callback"
   LOG_LEVEL: "INFO"
   # JSON logging is expected in production so log aggregators (Loki, CloudWatch, etc.) can parse it.
   LOG_JSON: "true"

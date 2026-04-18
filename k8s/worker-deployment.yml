@@ -9,10 +9,7 @@ spec:
   # its in-flight job and exited cleanly. ARQ workers catch SIGTERM and finish the current
   # task before shutting down, so a graceful overlap is preferred over hard interruption.
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
+    type: Recreate
   selector:
     matchLabels:
       app: worker
@@ -26,7 +23,7 @@ spec:
       terminationGracePeriodSeconds: 120
       containers:
         - name: worker
-          image: ghcr.io/your-user/noted-backend:latest
+          image: ghcr.io/evbabin/noted/noted-backend:latest
           command: ["arq", "app.tasks.worker.WorkerSettings"]
           envFrom:
             - configMapRef:
@@ -35,10 +32,10 @@ spec:
                 name: noted-secrets
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "200m"
+              memory: "192Mi"
+              cpu: "100m"
             limits:
-              memory: "512Mi"
-              cpu: "400m"
+              memory: "448Mi"
+              cpu: "500m"
           # No HTTP readiness/liveness probes — ARQ workers expose no HTTP endpoint.
           # k8s will restart the container automatically if the process exits non-zero.

@@ -12,10 +12,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - noted.yourdomain.com
+        - usenoted.study
       secretName: noted-tls
   rules:
-    - host: noted.yourdomain.com
+    - host: usenoted.study
       http:
         paths:
           - path: /api

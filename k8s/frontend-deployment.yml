@@ -4,12 +4,9 @@ metadata:
   name: frontend
   namespace: noted
 spec:
-  replicas: 2
+  replicas: 1
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
+    type: Recreate
   selector:
     matchLabels:
       app: frontend
@@ -23,7 +20,7 @@ spec:
       # build args in the CI/CD pipeline (Section 8.4) rather than here.
       containers:
         - name: frontend
-          image: ghcr.io/your-user/noted-frontend:latest
+          image: ghcr.io/evbabin/noted/noted-frontend:latest
           ports:
             - containerPort: 80
           resources:
